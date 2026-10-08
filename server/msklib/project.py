@@ -22,6 +22,7 @@ import tempfile
 from pathlib import Path
 
 from msklib.model import Item
+from msklib.xmlrecords import Plot, WorldItem, parse_plots, parse_world, render_plots, render_world
 from msklib.records import (Character, Label, parse_keyed, parse_labels, parse_status,
                             render_infos, render_labels, render_status, render_summary)
 
@@ -50,6 +51,8 @@ class Project:
         self.infos: dict[str, str] = {}
         self.summary: dict[str, str] = {}
         self.characters: list[Character] = []
+        self.plots: list[Plot] = []
+        self.world: list[WorldItem] = []
 
     @classmethod
     def load(cls, root: Path) -> "Project":
@@ -83,6 +86,13 @@ class Project:
                  if p.startswith("characters" + os.sep) and p.endswith(".txt")
                  and isinstance(self.files[p], str)]
         self.characters = sorted(chars, key=lambda c: c.id)
+        self._xml_loaded = {}
+        for rel, parser, attr in (("plots.xml", parse_plots, "plots"),
+                                  ("world.opml", parse_world, "world")):
+            raw = self.files.get(rel)
+            if isinstance(raw, bytes):
+                setattr(self, attr, parser(raw))
+                self._xml_loaded[rel] = raw
 
     def _build_outline(self) -> None:
         prefix = "outline" + os.sep
@@ -145,7 +155,7 @@ class Project:
                     self.files[new] = self.files.pop(old)
 
         for rel, content in {**rendered, **records}.items():
-            if rel not in self.files and content == "" and rel not in rendered:
+            if rel not in self.files and content in ("", b"") and rel not in rendered:
                 continue  # never create an empty optional file
             if self.files.get(rel) != content:
                 self._write(rel, content)
@@ -162,6 +172,9 @@ class Project:
             self._remove(rel)
         for c in self.characters:
             c.last_path = c.path()
+        for rel in ("plots.xml", "world.opml"):
+            if isinstance(self.files.get(rel), bytes):
+                self._xml_loaded[rel] = self.files[rel]
         self._prune_empty_dirs()
         return written
 
@@ -174,6 +187,17 @@ class Project:
         }
         for c in self.characters:
             out[c.path()] = c.render()
+        # XML files: only regenerate when the parsed data differs from what was read, so a
+        # file written by another lxml/libxml2 version is never rewritten needlessly.
+        for rel, data, render, parse in (("plots.xml", self.plots, render_plots, parse_plots),
+                                         ("world.opml", self.world, render_world, parse_world)):
+            old = self._xml_loaded.get(rel)
+            if old is not None and render(parse(old)) == render(data):
+                out[rel] = old
+            elif old is None and not data:
+                continue
+            else:
+                out[rel] = render(data)
         return out
 
     def _write(self, rel: str, content: str | bytes) -> None:

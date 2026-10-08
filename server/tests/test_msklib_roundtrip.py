@@ -134,3 +134,26 @@ def test_delete_character_goes_to_trash(proj_dir):
     p.save()
     assert not (proj_dir / gone.path()).exists()
     assert (proj_dir / ".trash" / gone.path()).exists()
+
+
+def test_plots_and_world_parsed(proj_dir):
+    p = Project.load(proj_dir)
+    assert [pl.name for pl in p.plots][0] == "The good news spreads from Jerusalem to Rome"
+    assert p.plots[2].characters == [1, 5]
+    assert [w.name for w in p.world] == ["Places", "Cultures", "Travel"]
+    assert [c.name for c in p.world[0].children][:2] == ["Jerusalem", "Judea"]
+
+
+def test_edit_plot_step_and_world_item(proj_dir):
+    from msklib.xmlrecords import WorldItem
+    p = Project.load(proj_dir)
+    p.plots[0].steps.append({"name": "Final step", "ID": "0", "meta": "", "summary": "Rome"})
+    p.plots[0].attrs["steps"] = "Resolution steps"
+    p.plots[1].set_characters([0, 1])
+    p.world[0].children.append(WorldItem({"name": "Antioch", "ID": "12"}))
+    assert sorted(p.save()) == ["plots.xml", "world.opml"]
+    again = Project.load(proj_dir)
+    assert again.plots[0].steps[0]["name"] == "Final step"
+    assert again.plots[1].characters == [0, 1]
+    assert again.world[0].children[-1].name == "Antioch"
+    assert again.save() == []
