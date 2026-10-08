@@ -5,7 +5,8 @@ import pytest
 
 from msklib.project import Project
 
-FIX = Path(__file__).parent / "fixtures" / "book-of-acts"
+FIXTURES = Path(__file__).parent / "fixtures"
+FIX = FIXTURES / "book-of-acts"
 
 
 @pytest.fixture()
@@ -57,3 +58,79 @@ def test_reload_after_edit_matches(proj_dir):
     s2 = next(i for i in again.outline.walk() if i.title == "Peter preaches")
     assert s2.text == "New body\n\nsecond paragraph" and s2.id == scene.id
     assert again.save() == []
+
+
+@pytest.mark.parametrize("name", ["book-of-acts", "draft-0001"])
+def test_golden_roundtrip_both_projects(tmp_path, name):
+    dest = tmp_path / name
+    shutil.copytree(FIXTURES / name, dest)
+    before = snapshot(dest)
+    p = Project.load(dest)
+    assert p.save() == []
+    assert snapshot(dest) == before
+
+
+def test_records_are_parsed(proj_dir):
+    p = Project.load(proj_dir)
+    assert p.infos["Title"] == "The Acts of the Apostles"
+    assert [c.name for c in p.characters][:2] == ["Peter", "Paul"]
+    assert p.status == ["TODO", "First draft", "Second draft", "Final"]
+    assert p.labels[0].name == "Idea" and p.labels[0].color == "#ffff00"
+
+
+def test_rename_character_moves_file(proj_dir):
+    p = Project.load(proj_dir)
+    peter = p.characters[0]
+    peter.name = "Simon Peter"
+    written = p.save()
+    assert written == ["characters/0-Simon_Peter.txt"]
+    assert not (proj_dir / "characters/0-Peter.txt").exists()
+    again = Project.load(proj_dir)
+    assert again.characters[0].name == "Simon Peter" and again.save() == []
+
+
+def test_add_character_label_status(proj_dir):
+    from msklib.records import Character, Label
+    p = Project.load(proj_dir)
+    p.characters.append(Character(id=6, name="Silas: the scribe", importance="1", color="#112233",
+                                  infos=[("Age", "40")]))
+    p.labels.append(Label("Draft", "#abcdef"))
+    p.status.append("Published")
+    assert sorted(p.save()) == ["characters/6-Silas-_the_scribe.txt", "labels.txt", "status.txt"]
+    again = Project.load(proj_dir)
+    silas = again.characters[-1]
+    assert silas.name == "Silas: the scribe" and silas.infos == [("Age", "40")]
+    assert again.labels[-1].color == "#abcdef" and again.status[-1] == "Published"
+    assert again.save() == []
+
+
+def test_multiline_and_inner_special_chars_roundtrip(proj_dir):
+    note = "line one\nline\u00a0two with nbsp\nthird\tline with tab\n\nafter blank"
+    p = Project.load(proj_dir)
+    p.characters[1].notes = note
+    p.save()
+    again = Project.load(proj_dir)
+    # The blank line is written indented, so it stays part of the value (same as desktop).
+    assert again.characters[1].notes == note
+    assert again.save() == []
+
+
+def test_leading_whitespace_on_continuation_lines_is_normalised(proj_dir):
+    """The desktop parser strips continuation lines, so leading blanks are lost there too.
+    After one save the file is stable."""
+    p = Project.load(proj_dir)
+    p.characters[1].notes = "first\n\u00a0indented"
+    p.save()
+    once = Project.load(proj_dir)
+    assert once.characters[1].notes == "first\nindented"
+    once.save()
+    twice = Project.load(proj_dir)
+    assert twice.save() == []
+
+
+def test_delete_character_goes_to_trash(proj_dir):
+    p = Project.load(proj_dir)
+    gone = p.characters.pop()
+    p.save()
+    assert not (proj_dir / gone.path()).exists()
+    assert (proj_dir / ".trash" / gone.path()).exists()

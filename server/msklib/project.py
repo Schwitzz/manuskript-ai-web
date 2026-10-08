@@ -22,6 +22,8 @@ import tempfile
 from pathlib import Path
 
 from msklib.model import Item
+from msklib.records import (Character, Label, parse_keyed, parse_labels, parse_status,
+                            render_infos, render_labels, render_status, render_summary)
 
 BINARY_SUFFIXES = (".xml", "opml")  # desktop reads these as bytes
 
@@ -43,6 +45,11 @@ class Project:
         self.root = Path(root)  # the project folder (the one holding MANUSKRIPT)
         self.files: dict[str, str | bytes] = {}  # relative path -> content as last read/written
         self.outline = Item(id=0, title="Root", type="folder")
+        self.labels: list[Label] = []
+        self.status: list[str] = []
+        self.infos: dict[str, str] = {}
+        self.summary: dict[str, str] = {}
+        self.characters: list[Character] = []
 
     @classmethod
     def load(cls, root: Path) -> "Project":
@@ -60,7 +67,22 @@ class Project:
                 except (UnicodeDecodeError, FileNotFoundError, IsADirectoryError):
                     continue
         proj._build_outline()
+        proj._build_records()
         return proj
+
+    def _text(self, rel: str) -> str:
+        val = self.files.get(rel, "")
+        return val if isinstance(val, str) else ""
+
+    def _build_records(self) -> None:
+        self.labels = parse_labels(self._text("labels.txt"))
+        self.status = parse_status(self._text("status.txt"))
+        self.infos = parse_keyed(self._text("infos.txt"))
+        self.summary = parse_keyed(self._text("summary.txt"))
+        chars = [Character.parse(self._text(p), p) for p in sorted(self.files)
+                 if p.startswith("characters" + os.sep) and p.endswith(".txt")
+                 and isinstance(self.files[p], str)]
+        self.characters = sorted(chars, key=lambda c: c.id)
 
     def _build_outline(self) -> None:
         prefix = "outline" + os.sep
@@ -104,6 +126,7 @@ class Project:
         Returns the relative paths written."""
         rendered = self.render_outline()
         written: list[str] = []
+        records = self._render_records()
 
         # Renames / moves first (an item's path differs from where it was read).
         for item in self.outline.walk():
@@ -114,7 +137,16 @@ class Project:
                 for key in [k for k in self.files if k == old or k.startswith(old + os.sep)]:
                     self.files[new + key[len(old):]] = self.files.pop(key)
 
-        for rel, content in rendered.items():
+        for c in self.characters:
+            old, new = c.last_path, c.path()
+            if old and old != new and (self.root / old).exists() and not (self.root / new).exists():
+                os.replace(self.root / old, self.root / new)
+                if old in self.files:
+                    self.files[new] = self.files.pop(old)
+
+        for rel, content in {**rendered, **records}.items():
+            if rel not in self.files and content == "" and rel not in rendered:
+                continue  # never create an empty optional file
             if self.files.get(rel) != content:
                 self._write(rel, content)
                 written.append(rel)
@@ -125,8 +157,24 @@ class Project:
         prefix = "outline" + os.sep
         for rel in [p for p in self.files if p.startswith(prefix) and p not in rendered]:
             self._remove(rel)
+        for rel in [p for p in self.files if p.startswith("characters" + os.sep)
+                    and p.endswith(".txt") and p not in records]:
+            self._remove(rel)
+        for c in self.characters:
+            c.last_path = c.path()
         self._prune_empty_dirs()
         return written
+
+    def _render_records(self) -> dict[str, str]:
+        out = {
+            "labels.txt": render_labels(self.labels),
+            "status.txt": render_status(self.status),
+            "infos.txt": render_infos(self.infos),
+            "summary.txt": render_summary(self.summary),
+        }
+        for c in self.characters:
+            out[c.path()] = c.render()
+        return out
 
     def _write(self, rel: str, content: str | bytes) -> None:
         target = self.root / rel

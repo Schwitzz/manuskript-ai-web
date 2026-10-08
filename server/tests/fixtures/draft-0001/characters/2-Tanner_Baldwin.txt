@@ -1,0 +1,7 @@
+Name:                Tanner Baldwin
+ID:                  2
+Importance:          1
+POV:                 True
+Motivation:          Money and power
+Goal:                Prevent any harm to his customer demand for Falcon Delete
+Color:               #0e06eb

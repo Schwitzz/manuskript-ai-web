@@ -1,0 +1,6 @@
+Name:                Jared Black
+ID:                  5
+Importance:          0
+POV:                 False
+Phrase Summary:      Fellow Lt. Col pilot, KIA by Falcon Delete. Call sign Rocker
+Color:               #87e1f6

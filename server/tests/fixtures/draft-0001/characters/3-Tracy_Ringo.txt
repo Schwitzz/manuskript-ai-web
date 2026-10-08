@@ -1,0 +1,6 @@
+Name:                Tracy Ringo
+ID:                  3
+Importance:          1
+POV:                 False
+Motivation:          Stakeholders of Armericorp
+Color:               #c381cf

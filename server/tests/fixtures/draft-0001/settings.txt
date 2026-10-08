@@ -1,0 +1,115 @@
+{
+    "autoSave": true,
+    "autoSaveDelay": 5,
+    "autoSaveNoChanges": true,
+    "autoSaveNoChangesDelay": 5,
+    "corkBackground": {
+        "color": "#181512",
+        "image": ""
+    },
+    "corkSizeFactor": 100,
+    "corkStyle": "new",
+    "countSpaces": true,
+    "defaultTextType": "md",
+    "dict": "PyEnchant:en_US",
+    "dontShowDeleteWarning": false,
+    "folderView": "cork",
+    "frequencyAnalyzer": {
+        "phraseMax": 5,
+        "phraseMin": 2,
+        "wordExclude": "a, and, or",
+        "wordMin": 1
+    },
+    "fullScreenTheme": "newtheme",
+    "fullscreenSettings": {
+        "autohide-bottom": true,
+        "autohide-left": true,
+        "autohide-top": true,
+        "clock-show-seconds": true,
+        "progress-auto-show": true,
+        "title-show-full-path": true
+    },
+    "lastTab": 6,
+    "openIndexes": [
+        0,
+        [
+            "2"
+        ],
+        null
+    ],
+    "outlineViewColumns": [
+        0,
+        5,
+        8,
+        9,
+        11,
+        12,
+        13,
+        7
+    ],
+    "progressChars": true,
+    "revisions": {
+        "keep": true,
+        "rules": {
+            "2592000": 86400.0,
+            "3600": 600.0,
+            "600": 60.0,
+            "86400": 3600.0,
+            "null": 604800.0
+        },
+        "smartremove": true
+    },
+    "saveOnQuit": true,
+    "saveToZip": false,
+    "spellcheck": true,
+    "textEditor": {
+        "alwaysCenter": false,
+        "background": "#15120f",
+        "backgroundTransparent": false,
+        "cursorNotBlinking": false,
+        "cursorWidth": 1,
+        "focusMode": false,
+        "font": "Ubuntu Sans,12,-1,5,50,0,0,0,0,0",
+        "fontColor": "#e3d5c0",
+        "indent": false,
+        "lineSpacing": 100,
+        "marginsLR": 0,
+        "marginsTB": 20,
+        "maxWidth": 800,
+        "misspelled": "#d8695f",
+        "spacingAbove": 5,
+        "spacingBelow": 5,
+        "tabSpaces": 4,
+        "tabWidth": 5,
+        "textAlignment": 0
+    },
+    "tooltipStyle": {
+        "backgroundColor": "#000000",
+        "borderColor": "#767676",
+        "textColor": "#cecece",
+        "useSystemDefaultsForTooltips": false
+    },
+    "viewMode": "fiction",
+    "viewSettings": {
+        "Cork": {
+            "Background": "Nothing",
+            "Border": "Nothing",
+            "Corner": "Label",
+            "Icon": "Nothing",
+            "Text": "Nothing"
+        },
+        "Outline": {
+            "Background": "Nothing",
+            "Icon": "Nothing",
+            "Text": "Compile"
+        },
+        "Tree": {
+            "Background": "Compile",
+            "Icon": "Compile",
+            "InfoFolder": "Nothing",
+            "InfoText": "Nothing",
+            "Text": "Compile",
+            "iconSize": 24
+        }
+    }
+}

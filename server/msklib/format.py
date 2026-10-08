@@ -35,18 +35,18 @@ def format_meta(name: str, value: str, tab: int = 10) -> str:
 _META_RE = re.compile(r"^([^\s].*?):\s*(.*)$")
 
 
-def parse_mmd(text: str) -> tuple["OrderedDict[str, str]", str]:
-    """Split a file into (metadata dict, body). Mirrors parseMMDFile(asDict=True)."""
-    meta: "OrderedDict[str, str]" = OrderedDict()
+def parse_mmd_pairs(text: str) -> tuple[list[tuple[str, str]], str]:
+    """Split a file into (ordered [(key, value)] pairs, body). Keeps repeated keys,
+    like the desktop's parseMMDFile(asDict=False)."""
+    pairs: list[tuple[str, str]] = []
     body: list[str] = []
     descr = ""
     val = ""
     in_body = False
 
     def commit():
-        nonlocal descr
         if descr:
-            meta["" if descr == "None" else descr] = val
+            pairs.append(("" if descr == "None" else descr, val))
 
     for line in text.split("\n"):
         if not in_body:
@@ -64,4 +64,10 @@ def parse_mmd(text: str) -> tuple["OrderedDict[str, str]", str]:
 
     if body and body[0] == "":
         body = body[1:]
-    return meta, "\n".join(body)
+    return pairs, "\n".join(body)
+
+
+def parse_mmd(text: str) -> tuple["OrderedDict[str, str]", str]:
+    """Like parse_mmd_pairs, but metadata as a dict (last duplicate wins)."""
+    pairs, body = parse_mmd_pairs(text)
+    return OrderedDict(pairs), body

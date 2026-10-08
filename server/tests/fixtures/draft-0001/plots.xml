@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<root>
+  <plot name="Relationship with Jessie" ID="0" importance="2" characters="0,1" steps="Resolution steps">
+    <step name="Reflections  on relationship" ID="0" meta="" summary="After watching his squadron get annihilated by Falcon Delete, Arch reflects on his relationship with fiance Jessie and what life outside of the military would look like. "/>
+    <step name="Retirement from AF" ID="1" meta="" summary="After the mission debrief in which Arch is given little information on what he saw, he decides on the spot to submit resignation. This is conflict number 1 because he offered promotion to Colonel and command over his wing. Decides that moving forward with Jessie is his main goal."/>
+    <step name="Struggle in civilian life" ID="2" meta="" summary="Soon after returning home, Arch is conflicted with lack of structure and no obligations. He deepens his relationship with Jessie who has been offering assistance. Arch finally gives her the go-ahead to help him find meaningful employment. Jessie lines him up with Armericorp."/>
+    <step name="Conflicting morals at work" ID="3" meta="" summary="Armericorp's customer base includes the USAF, as well as congressionally approved direct customer sales.  Arch finds out that Jessie's contact, the one that helped get his job, is in contact with foreign adversaries"/>
+  </plot>
+</root>

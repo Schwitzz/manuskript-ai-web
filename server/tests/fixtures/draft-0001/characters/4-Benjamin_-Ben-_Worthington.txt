@@ -1,0 +1,7 @@
+Name:                Benjamin (Ben) Worthington
+ID:                  4
+Importance:          1
+POV:                 False
+Motivation:          Support his warfighters
+Phrase Summary:      Colonel, Commander 388 Fighter Wing
+Color:               #d2d6df

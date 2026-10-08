@@ -1,0 +1,5 @@
+Name:                Jessica (Jessie) Mallory
+ID:                  1
+Importance:          2
+POV:                 True
+Color:               #a490c9

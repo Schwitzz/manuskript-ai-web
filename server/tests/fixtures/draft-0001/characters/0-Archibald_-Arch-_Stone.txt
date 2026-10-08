@@ -1,0 +1,9 @@
+Name:                Archibald (Arch) Stone
+ID:                  0
+Importance:          2
+POV:                 True
+Motivation:          Finding structure after career ending in military.
+Goal:                Find the truth about the Falcon Delete weapon and Jessie
+Conflict:            Allegiance to his country despite uncomfortable truths
+Phrase Summary:      Lt. Col. F-35 pilot. Call sign Keystone
+Color:               #9a0103
