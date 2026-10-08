@@ -1,0 +1,10 @@
+services:
+  manuskript:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${MSK_PORT:-8000}:8000"
+    volumes:
+      - ./data/projects:/data/projects
+      - ./data/app:/data/app

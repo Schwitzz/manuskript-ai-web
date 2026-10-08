@@ -1,0 +1,5 @@
+.env
+data/
+web/build/
+web/test-results/
+web/playwright-report/

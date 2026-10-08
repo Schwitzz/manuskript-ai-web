@@ -1,1 +1,44 @@
 @import 'tailwindcss';
+
+/* Theme variables. Phase 3 ports the 31 desktop schemes onto these names. */
+:root {
+	--bg: #f7f5f0;
+	--surface: #ffffff;
+	--text: #1d1d1b;
+	--muted: #6b6a66;
+	--border: #dcd8cf;
+	--accent: #2f5d8a;
+	--accent-text: #ffffff;
+	--danger: #b3261e;
+}
+
+:root[data-theme='dark'] {
+	--bg: #16171a;
+	--surface: #202226;
+	--text: #ececea;
+	--muted: #9b9ba0;
+	--border: #33363c;
+	--accent: #7aa7d6;
+	--accent-text: #10141a;
+	--danger: #f2827a;
+}
+
+html,
+body {
+	background: var(--bg);
+	color: var(--text);
+	min-height: 100%;
+}
+
+/* Touch targets of at least 44px everywhere. */
+button,
+a.tap,
+input,
+select {
+	min-height: 44px;
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}

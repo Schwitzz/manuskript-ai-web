@@ -1,13 +1,39 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '#lib/assets/favicon.svg';
+	import { auth } from '#lib/stores/auth.svelte.ts';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
+	let ready = $state(false);
+
+	onMount(async () => {
+		try {
+			await auth.refresh();
+		} finally {
+			ready = true;
+		}
+	});
+
+	// Route guard: unauthenticated users only ever see /login.
+	$effect(() => {
+		if (!ready) return;
+		const onLogin = page.url.pathname.startsWith('/login');
+		if (!auth.status?.authenticated && !onLogin) goto('/login');
+		else if (auth.status?.authenticated && onLogin) goto('/');
+	});
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<link rel="manifest" href="/manifest.webmanifest" />
+	<meta name="theme-color" content="#2f5d8a" />
+	<title>Manuskript AI</title>
 </svelte:head>
 
-{@render children()}
+{#if ready}
+	{@render children()}
+{/if}
