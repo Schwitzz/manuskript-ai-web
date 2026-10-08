@@ -11,7 +11,7 @@ Licence: GPL-3.0 (see COPYING). Parts are derived from Manuskript
 ## Development
 
 ```bash
-# server (tests: 11)
+# server (tests: 22)
 cd server && uv sync && uv run pytest
 
 # web app (type check, build, e2e at 390x844 and 1440x900)
@@ -25,5 +25,5 @@ cp .env.example .env   # set MSK_SECRET_KEY
 docker compose up -d
 ```
 
-Status: Phase 0 (skeleton, Docker, login) is in progress. See PLAN.md.
+Status: Phase 0 (skeleton, Docker, login, 2FA, PWA) is done. Phase 1 (msklib) is in progress. See PLAN.md and docs/install.md.
 Note: port 8000 is used by another service on the dev rig, so use `MSK_PORT=8770` in `.env` there.

@@ -11,6 +11,7 @@
 	let ready = $state(false);
 
 	onMount(async () => {
+		if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 		try {
 			await auth.refresh();
 		} finally {

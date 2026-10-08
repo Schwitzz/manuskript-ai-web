@@ -1,0 +1,8 @@
+# Caddy terminates HTTPS and forwards to the app.
+# Set in .env:  MSK_TRUSTED_PROXIES=<IP of this Caddy host as the app sees it>
+manuskript.example.com {
+reverse_proxy 127.0.0.1:8000 {
+# Streamed AI replies (SSE) must not be buffered.
+flush_interval -1
+}
+}
