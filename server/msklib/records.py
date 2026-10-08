@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from msklib.format import format_meta, parse_mmd, parse_mmd_pairs, slugify
+from msklib.format import clean_value, format_meta, parse_mmd, parse_mmd_pairs, slugify
 
 # Desktop characterMap: (attribute, file key) in write order.
 CHARACTER_FIELDS = [
@@ -37,18 +37,18 @@ class Character:
     last_path: str = ""
 
     def path(self) -> str:
-        return "characters/{}-{}.txt".format(self.id, slugify(self.name))
+        return "characters/{}-{}.txt".format(self.id, slugify(clean_value(self.name).strip()))
 
     def render(self) -> str:
         values = {**self.__dict__, "id": str(self.id)}
         out = ""
         for attr, key in CHARACTER_FIELDS:
-            val = str(values[attr]).strip()
+            val = clean_value(str(values[attr]).strip())
             if val:
                 out += format_meta(key, val, 20)
-        out += format_meta("Color", self.color, 20)
+        out += format_meta("Color", clean_value(self.color), 20)
         for desc, val in self.infos:
-            out += format_meta(desc, val, 20)
+            out += format_meta(desc.strip(), clean_value(val), 20)
         return out
 
     @classmethod

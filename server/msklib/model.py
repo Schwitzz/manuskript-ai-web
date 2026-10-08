@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from msklib.format import format_meta, parse_mmd, slugify
+from msklib.format import clean_value, format_meta, parse_mmd, slugify
 
 # Order of the metadata keys in a file (the desktop Outline enum order).
 # title/ID/type are always written, `compile` is written even when empty.
@@ -33,6 +33,7 @@ class Item:
 
     def to_mmd(self) -> str:
         values = {"title": self.title, "ID": str(self.id), "type": self.type, **self.meta}
+        values = {k: clean_value(str(v)) for k, v in values.items()}
         out = ""
         for key in META_ORDER:
             val = values.get(key, "")
@@ -63,8 +64,9 @@ class Item:
         if self.parent is None:
             return "outline"
         siblings = self.parent.children
-        titles = [s.title for s in siblings]
-        title = f"{self.title}-{self.id}" if titles.count(self.title) > 1 else self.title
+        mine = clean_value(self.title)
+        titles = [clean_value(s.title) for s in siblings]
+        title = f"{mine}-{self.id}" if titles.count(mine) > 1 else mine
         name = "{}-{}{}".format(str(self.row()).zfill(len(str(len(siblings)))), slugify(title),
                                 "" if self.is_folder else ".md")
         return self.parent.path() + "/" + name

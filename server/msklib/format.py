@@ -32,6 +32,13 @@ def format_meta(name: str, value: str, tab: int = 10) -> str:
     return "{name}:{spaces}{value}\n".format(name=name, spaces=" " * (tab - len(name)), value=value)
 
 
+def clean_value(value: str) -> str:
+    """A header value as it will read back: the parser drops blanks after the colon and
+    strips continuation lines. Use it before writing so the first save is already stable."""
+    first, *rest = value.split("\n")
+    return "\n".join([first.lstrip(), *[ln.strip() for ln in rest]])
+
+
 _META_RE = re.compile(r"^([^\s].*?):\s*(.*)$")
 
 
