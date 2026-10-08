@@ -23,6 +23,7 @@ class Item:
     children: list["Item"] = field(default_factory=list)
     parent: "Item | None" = field(default=None, repr=False)
     last_path: str = ""  # where it was read from / last written
+    loaded_text: str | None = None  # text as read, to detect edits
 
     @property
     def is_folder(self) -> bool:
@@ -57,6 +58,7 @@ class Item:
             last_path=path,
         )
         item.meta = meta
+        item.loaded_text = body
         return item
 
     def path(self) -> str:

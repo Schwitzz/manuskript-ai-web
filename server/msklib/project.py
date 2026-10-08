@@ -15,12 +15,14 @@ Files msklib does not model (world, plots, settings, revisions) pass through unt
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
 import tempfile
 from pathlib import Path
 
+from msklib.counts import char_count
 from msklib.model import Item
 from msklib.xmlrecords import Plot, WorldItem, parse_plots, parse_world, render_plots, render_world
 from msklib.records import (Character, Label, parse_keyed, parse_labels, parse_status,
@@ -134,6 +136,7 @@ class Project:
     def save(self) -> list[str]:
         """Write changed outline files, move renamed ones, trash removed ones.
         Returns the relative paths written."""
+        self._update_char_counts()
         rendered = self.render_outline()
         written: list[str] = []
         records = self._render_records()
@@ -162,6 +165,8 @@ class Project:
                 written.append(rel)
         for item in self.outline.walk():
             item.last_path = item.path() if item.is_folder else item.file_path()
+            if not item.is_folder:
+                item.loaded_text = item.text
 
         # Outline files no longer in the model go to .trash, never a hard delete.
         prefix = "outline" + os.sep
@@ -177,6 +182,39 @@ class Project:
                 self._xml_loaded[rel] = self.files[rel]
         self._prune_empty_dirs()
         return written
+
+    def _count_spaces(self) -> bool:
+        try:
+            return bool(json.loads(self._text("settings.txt")).get("countSpaces", True))
+        except ValueError:
+            return True
+
+    def _update_char_counts(self) -> None:
+        """Like desktop: write charCount (omitted when 0) for edited scenes and their parent
+        folders. Untouched items keep whatever was in the file, so no needless rewrites."""
+        spaces = self._count_spaces()
+        dirty_folders: list[Item] = []
+        for item in self.outline.walk():
+            if item.is_folder:
+                continue
+            if item.loaded_text is not None and item.text == item.loaded_text:
+                continue
+            self._set_count(item, char_count(item.text, spaces))
+            parent = item.parent
+            while parent is not None and parent is not self.outline:
+                if parent not in dirty_folders:
+                    dirty_folders.append(parent)
+                parent = parent.parent
+        for folder in sorted(dirty_folders, key=lambda f: -len(f.path())):
+            self._set_count(folder, sum(int(c.meta.get("charCount", 0) or 0)
+                                        for c in folder.children))
+
+    @staticmethod
+    def _set_count(item: Item, n: int) -> None:
+        if n:
+            item.meta["charCount"] = str(n)
+        else:
+            item.meta.pop("charCount", None)
 
     def _render_records(self) -> dict[str, str]:
         out = {

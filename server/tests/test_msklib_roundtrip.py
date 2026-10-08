@@ -37,16 +37,21 @@ def test_roundtrip_is_byte_identical(proj_dir):
     assert before == after
 
 
-def test_edit_one_scene_changes_only_that_file(proj_dir):
+def test_edit_one_scene_changes_only_that_scene_and_its_ancestor_folders(proj_dir):
     before = snapshot(proj_dir)
     p = Project.load(proj_dir)
     scene = next(i for i in p.outline.walk() if i.title == "Peter preaches")
     scene.text += "\nAn added line."
     written = p.save()
     after = snapshot(proj_dir)
-    changed = [k for k in after if before.get(k) != after[k]]
-    assert len(written) == 1 and changed == written
-    assert after[written[0]].endswith(b"An added line.")
+    changed = sorted(k for k in after if before.get(k) != after[k])
+    # Like desktop, charCount is refreshed on the scene and on every folder above it.
+    assert sorted(written) == changed == sorted([
+        "outline/0-Jerusalem/2-Chapter_3/1-Peter_preaches.md",
+        "outline/0-Jerusalem/2-Chapter_3/folder.txt",
+        "outline/0-Jerusalem/folder.txt"])
+    assert after["outline/0-Jerusalem/2-Chapter_3/1-Peter_preaches.md"].endswith(b"An added line.")
+    assert Project.load(proj_dir).save() == []
 
 
 def test_reload_after_edit_matches(proj_dir):

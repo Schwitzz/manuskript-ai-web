@@ -1,0 +1,79 @@
+{
+ "changed_by_desktop_save": [
+  "settings.txt"
+ ],
+ "characters": [
+  {
+   "id": 0,
+   "name": "Archibald (Arch) Stone"
+  },
+  {
+   "id": 1,
+   "name": "Jessica (Jessie) Mallory"
+  },
+  {
+   "id": 2,
+   "name": "Tanner Baldwin"
+  },
+  {
+   "id": 3,
+   "name": "Tracy Ringo"
+  },
+  {
+   "id": 4,
+   "name": "Benjamin (Ben) Worthington"
+  },
+  {
+   "id": 5,
+   "name": "Jared Black"
+  }
+ ],
+ "items": [
+  {
+   "chars": 6785,
+   "id": 1,
+   "text_sha256": null,
+   "title": "New",
+   "type": "folder",
+   "words": 1085
+  },
+  {
+   "chars": 6785,
+   "id": 2,
+   "text_sha256": "75919df518882a1e733f04b4e71ce078fd9fbfea7203eb56e7977a3ba9569a68",
+   "title": "Chapter 1",
+   "type": "md",
+   "words": 1085
+  },
+  {
+   "chars": 0,
+   "id": 3,
+   "text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "title": "Chapter 2",
+   "type": "md",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 4,
+   "text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "title": "Chapter 3",
+   "type": "md",
+   "words": 0
+  }
+ ],
+ "labels": [
+  "Idea",
+  "Note",
+  "Chapter",
+  "Scene",
+  "Research"
+ ],
+ "plots": 1,
+ "status": [
+  "TODO",
+  "First draft",
+  "Second draft",
+  "Final"
+ ]
+}

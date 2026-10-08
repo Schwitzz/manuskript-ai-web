@@ -1,0 +1,705 @@
+{
+ "changed_by_desktop_save": [
+  "characters/0-Peter.txt",
+  "characters/1-Paul.txt",
+  "characters/2-Philip.txt",
+  "characters/3-Stephen.txt",
+  "characters/4-Herod.txt",
+  "characters/5-Barnabas.txt",
+  "outline/0-Jerusalem/0-Chapter_1/0-Introduction.md",
+  "outline/0-Jerusalem/0-Chapter_1/1-Jesus_taken_up_into_heaven.md",
+  "outline/0-Jerusalem/0-Chapter_1/2-Matthias_chosen_to_replace_Judas.md",
+  "outline/0-Jerusalem/0-Chapter_1/folder.txt",
+  "outline/0-Jerusalem/1-Chapter_2/0-The_promised_Spirit.md",
+  "outline/0-Jerusalem/1-Chapter_2/1-Peter_adresses_the_crowd.md",
+  "outline/0-Jerusalem/1-Chapter_2/2-The_life_of_the_first_believers.md",
+  "outline/0-Jerusalem/1-Chapter_2/folder.txt",
+  "outline/0-Jerusalem/2-Chapter_3/0-Peter_heals_a_beggar.md",
+  "outline/0-Jerusalem/2-Chapter_3/1-Peter_preaches.md",
+  "outline/0-Jerusalem/2-Chapter_3/folder.txt",
+  "outline/0-Jerusalem/3-Chapter_4/0-Peter_and_John_in_front_of_the_Sanhedrin.md",
+  "outline/0-Jerusalem/3-Chapter_4/1-The_believers_pray.md",
+  "outline/0-Jerusalem/3-Chapter_4/2-The_believers_share.md",
+  "outline/0-Jerusalem/3-Chapter_4/folder.txt",
+  "outline/0-Jerusalem/4-Chapter_5/0-Ananias_and_Sapphira.md",
+  "outline/0-Jerusalem/4-Chapter_5/1-Many_healings_done_by_the_aposles.md",
+  "outline/0-Jerusalem/4-Chapter_5/2-The_persecutions.md",
+  "outline/0-Jerusalem/4-Chapter_5/folder.txt",
+  "outline/0-Jerusalem/5-Chapter_6/0-The_choosing_of_seven.md",
+  "outline/0-Jerusalem/5-Chapter_6/1-Stephen_is_taken.md",
+  "outline/0-Jerusalem/5-Chapter_6/folder.txt",
+  "outline/0-Jerusalem/6-Chapter_7/0-Stephen_preaches.md",
+  "outline/0-Jerusalem/6-Chapter_7/1-Stephen_is_killed.md",
+  "outline/0-Jerusalem/6-Chapter_7/folder.txt",
+  "outline/0-Jerusalem/folder.txt",
+  "outline/1-Judea_and_Samaria/0-Chapter_8/0-The_church_scattered.md",
+  "outline/1-Judea_and_Samaria/0-Chapter_8/1-Philip_in_Samaria.md",
+  "outline/1-Judea_and_Samaria/0-Chapter_8/2-Simon_the_Sorcerer.md",
+  "outline/1-Judea_and_Samaria/0-Chapter_8/3-Philip_and_the_Ethiopian.md",
+  "outline/1-Judea_and_Samaria/0-Chapter_8/folder.txt",
+  "outline/1-Judea_and_Samaria/1-Chapter_9/0-Saul-s_conversion.md",
+  "outline/1-Judea_and_Samaria/1-Chapter_9/1-Saul_in_Damascus_and_Jerusalem.md",
+  "outline/1-Judea_and_Samaria/1-Chapter_9/2-Peter_visits_the_church_in_Judea.md",
+  "outline/1-Judea_and_Samaria/1-Chapter_9/folder.txt",
+  "outline/1-Judea_and_Samaria/2-Chapter_10/0-Cornelius_calls_for_Peter.md",
+  "outline/1-Judea_and_Samaria/2-Chapter_10/1-Peter-s_vision.md",
+  "outline/1-Judea_and_Samaria/2-Chapter_10/2-The_conversion_of_Peter.md",
+  "outline/1-Judea_and_Samaria/2-Chapter_10/folder.txt",
+  "outline/1-Judea_and_Samaria/3-Chapter_11/0-Peter_explains_his_actions.md",
+  "outline/1-Judea_and_Samaria/3-Chapter_11/1-The_Church_in_Antioch.md",
+  "outline/1-Judea_and_Samaria/3-Chapter_11/folder.txt",
+  "outline/1-Judea_and_Samaria/4-Chapter_12/0-Peter_escapes_from_prison.md",
+  "outline/1-Judea_and_Samaria/4-Chapter_12/1-Herod_dies.md",
+  "outline/1-Judea_and_Samaria/4-Chapter_12/folder.txt",
+  "outline/1-Judea_and_Samaria/folder.txt",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/0-Chapter_13/0-Saul_and_Barnabas_are_sent.md",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/0-Chapter_13/1-Cyprus.md",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/0-Chapter_13/2-Psidian_Antioch.md",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/0-Chapter_13/folder.txt",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/1-Chapter_14/0-Iconium.md",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/1-Chapter_14/1-Lystra_and_Derbe.md",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/1-Chapter_14/2-Back_to_Antioch.md",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/1-Chapter_14/folder.txt",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/2-Chapter_15/0-The_Council_at_Jerusalem.md",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/2-Chapter_15/1-The_Council_writes_to_gentile_believers.md",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/2-Chapter_15/2-Paul_and_Barnabas_fight_and_split.md",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/2-Chapter_15/folder.txt",
+  "outline/2-To_the_extremities_of_the_world/0-Asia_Minor_and_Greece/folder.txt",
+  "outline/2-To_the_extremities_of_the_world/folder.txt",
+  "settings.txt"
+ ],
+ "characters": [
+  {
+   "id": 0,
+   "name": "Peter"
+  },
+  {
+   "id": 1,
+   "name": "Paul"
+  },
+  {
+   "id": 2,
+   "name": "Philip"
+  },
+  {
+   "id": 3,
+   "name": "Stephen"
+  },
+  {
+   "id": 4,
+   "name": "Herod"
+  },
+  {
+   "id": 5,
+   "name": "Barnabas"
+  }
+ ],
+ "items": [
+  {
+   "chars": 31448,
+   "id": 35,
+   "text_sha256": null,
+   "title": "Jerusalem",
+   "type": "folder",
+   "words": 5990
+  },
+  {
+   "chars": 3475,
+   "id": 5,
+   "text_sha256": null,
+   "title": "Chapter 1",
+   "type": "folder",
+   "words": 651
+  },
+  {
+   "chars": 386,
+   "id": 1,
+   "text_sha256": "e9a5d3bb249b2a09a7e1fefa53e45d393844793f64183d439975463c1261b26e",
+   "title": "Introduction",
+   "type": "md",
+   "words": 72
+  },
+  {
+   "chars": 1089,
+   "id": 2,
+   "text_sha256": "99b8379b1983733ff73fe901feb221ccb5957738a4a5b7e5e072c4d70fd4fd6c",
+   "title": "Jesus taken up into heaven",
+   "type": "md",
+   "words": 211
+  },
+  {
+   "chars": 2000,
+   "id": 3,
+   "text_sha256": "ba5575fcac8512014ade45cee26fbeef20b9cbffe61de3b9387a267c6fcace80",
+   "title": "Matthias chosen to replace Judas",
+   "type": "md",
+   "words": 368
+  },
+  {
+   "chars": 5387,
+   "id": 6,
+   "text_sha256": null,
+   "title": "Chapter 2",
+   "type": "folder",
+   "words": 1021
+  },
+  {
+   "chars": 1267,
+   "id": 4,
+   "text_sha256": "4aeeceee0dc1f56854627547bfc3a77ba234c0ba0a508a2c259bfe32ee4ea4ec",
+   "title": "The promised Spirit",
+   "type": "md",
+   "words": 224
+  },
+  {
+   "chars": 3475,
+   "id": 15,
+   "text_sha256": "43f64dd31e76140a71d82705c878128b82e1df914f7e4be5e7e5376fce684186",
+   "title": "Peter adresses the crowd",
+   "type": "md",
+   "words": 684
+  },
+  {
+   "chars": 645,
+   "id": 14,
+   "text_sha256": "45384016e0c9e457b146be15c0d891ba5fddebf7c4e2a33d6057861bc36e8e7d",
+   "title": "The life of the first believers",
+   "type": "md",
+   "words": 113
+  },
+  {
+   "chars": 3358,
+   "id": 7,
+   "text_sha256": null,
+   "title": "Chapter 3",
+   "type": "folder",
+   "words": 650
+  },
+  {
+   "chars": 1135,
+   "id": 13,
+   "text_sha256": "be7419bcb5a591033f84cb68899aff18096b575c0172a6a2c438cd8a3b19fea3",
+   "title": "Peter heals a beggar",
+   "type": "md",
+   "words": 222
+  },
+  {
+   "chars": 2223,
+   "id": 12,
+   "text_sha256": "9ac6a76fe4a73bce7fe42b19803cd894dc7126a471b4422fd901f1eb55027148",
+   "title": "Peter preaches",
+   "type": "md",
+   "words": 428
+  },
+  {
+   "chars": 4627,
+   "id": 8,
+   "text_sha256": null,
+   "title": "Chapter 4",
+   "type": "folder",
+   "words": 881
+  },
+  {
+   "chars": 2652,
+   "id": 16,
+   "text_sha256": "71515f3faec75fbc529c9226b7feae816e62e320d02ae65fe29b3d690d2a59b7",
+   "title": "Peter and John in front of the Sanhedrin",
+   "type": "md",
+   "words": 509
+  },
+  {
+   "chars": 1170,
+   "id": 17,
+   "text_sha256": "1d82c3f877307716e9c288263cce609cedfcce90e9f8a6c9470eca9b1dc11df5",
+   "title": "The believers pray",
+   "type": "md",
+   "words": 221
+  },
+  {
+   "chars": 805,
+   "id": 18,
+   "text_sha256": "c2f6b7be53298d64ae4f042ad20c284246fb753651ad78a1b0c6da9082efff55",
+   "title": "The believers share",
+   "type": "md",
+   "words": 151
+  },
+  {
+   "chars": 5267,
+   "id": 9,
+   "text_sha256": null,
+   "title": "Chapter 5",
+   "type": "folder",
+   "words": 1008
+  },
+  {
+   "chars": 1316,
+   "id": 19,
+   "text_sha256": "7403a555805ea0dce5acc35f4ca88cad226f0dbfa0b0df0dd05b02a937cb299e",
+   "title": "Ananias and Sapphira",
+   "type": "md",
+   "words": 262
+  },
+  {
+   "chars": 620,
+   "id": 20,
+   "text_sha256": "95ee9baa2d9b07395929e0b749d3137084e6a0d02e457ef5625f9a15a3e5b41e",
+   "title": "Many healings done by the aposles",
+   "type": "md",
+   "words": 113
+  },
+  {
+   "chars": 3331,
+   "id": 21,
+   "text_sha256": "0759cc6ab6c50a68822225cbbc094fd11715ed9f23b2a753a619a839666b16f8",
+   "title": "The persecutions",
+   "type": "md",
+   "words": 633
+  },
+  {
+   "chars": 1952,
+   "id": 10,
+   "text_sha256": null,
+   "title": "Chapter 6",
+   "type": "folder",
+   "words": 350
+  },
+  {
+   "chars": 992,
+   "id": 22,
+   "text_sha256": "f18146fceb5dbac89e7eb388d435a9d6ba329ca2037c83c32e4ff8b425624564",
+   "title": "The choosing of seven",
+   "type": "md",
+   "words": 174
+  },
+  {
+   "chars": 960,
+   "id": 23,
+   "text_sha256": "0f30c50c801df25e56eb3815363d499a04dba485aa694457164b51769bd44ea9",
+   "title": "Stephen is taken",
+   "type": "md",
+   "words": 176
+  },
+  {
+   "chars": 7382,
+   "id": 11,
+   "text_sha256": null,
+   "title": "Chapter 7",
+   "type": "folder",
+   "words": 1429
+  },
+  {
+   "chars": 6588,
+   "id": 24,
+   "text_sha256": "130441ad5b643ef1385271e363ca239dcd4a1b996c0f0a81500cf08b2efd15c6",
+   "title": "Stephen preaches",
+   "type": "md",
+   "words": 1274
+  },
+  {
+   "chars": 794,
+   "id": 25,
+   "text_sha256": "5ee168b15a3acef7f6fa22f7d85afa6477e12fb3b4712282cac0ef8bace0d8bd",
+   "title": "Stephen is killed",
+   "type": "md",
+   "words": 155
+  },
+  {
+   "chars": 22301,
+   "id": 34,
+   "text_sha256": null,
+   "title": "Judea and Samaria",
+   "type": "folder",
+   "words": 4281
+  },
+  {
+   "chars": 4574,
+   "id": 27,
+   "text_sha256": null,
+   "title": "Chapter 8",
+   "type": "folder",
+   "words": 859
+  },
+  {
+   "chars": 459,
+   "id": 26,
+   "text_sha256": "acd62a94bfbf5982f18a3e176584946aee32dc7c88faa3791eb68910c49a68f0",
+   "title": "The church scattered",
+   "type": "md",
+   "words": 78
+  },
+  {
+   "chars": 399,
+   "id": 32,
+   "text_sha256": "9212196ca50c3b035223c8c0fa2eeb3bbfc0e89a43a54c715e55639284e7f5d2",
+   "title": "Philip in Samaria",
+   "type": "md",
+   "words": 78
+  },
+  {
+   "chars": 1938,
+   "id": 33,
+   "text_sha256": "1a7b693daa496ff5afd8b8a96c54a492ca0877b32e84647b34387173fd245da7",
+   "title": "Simon the Sorcerer",
+   "type": "md",
+   "words": 364
+  },
+  {
+   "chars": 1778,
+   "id": 36,
+   "text_sha256": "4eba496c21c128293267f86c119d880c45b4136ab3bfd8611659ed17e93e08ac",
+   "title": "Philip and the Ethiopian",
+   "type": "md",
+   "words": 339
+  },
+  {
+   "chars": 5155,
+   "id": 28,
+   "text_sha256": null,
+   "title": "Chapter 9",
+   "type": "folder",
+   "words": 995
+  },
+  {
+   "chars": 2175,
+   "id": 37,
+   "text_sha256": "2f854364f970dd65c1838c67adecdd69a13025863a8069083fd5b35fb335d1bc",
+   "title": "Saul's conversion",
+   "type": "md",
+   "words": 428
+  },
+  {
+   "chars": 1576,
+   "id": 38,
+   "text_sha256": "5ec859217bc873da4e2904823641fc38b655f7f07618a841c9968fd2586117ea",
+   "title": "Saul in Damascus and Jerusalem",
+   "type": "md",
+   "words": 297
+  },
+  {
+   "chars": 1404,
+   "id": 39,
+   "text_sha256": "57e2b43749638ffb3774ba8c9464f7f6a067d99bab66c4d5c81642fcb3fd46c2",
+   "title": "Peter visits the church in Judea",
+   "type": "md",
+   "words": 270
+  },
+  {
+   "chars": 5749,
+   "id": 29,
+   "text_sha256": null,
+   "title": "Chapter 10",
+   "type": "folder",
+   "words": 1110
+  },
+  {
+   "chars": 920,
+   "id": 40,
+   "text_sha256": "0c318069a3cc5ba276f0f344ac999f0b2bb0d0a98af3cd8a6a942ab0a64180a8",
+   "title": "Cornelius calls for Peter",
+   "type": "md",
+   "words": 180
+  },
+  {
+   "chars": 1617,
+   "id": 41,
+   "text_sha256": "d6edcfc466f9ff5c074f4afddfea555ed2df7b8d586fc275af4dcbab06c4e94b",
+   "title": "Peter's vision",
+   "type": "md",
+   "words": 315
+  },
+  {
+   "chars": 3212,
+   "id": 42,
+   "text_sha256": "55233140de8be37e01f32cbbfb34f97b9939eb3b80d027404332ff97aaf4f79d",
+   "title": "The conversion of Peter",
+   "type": "md",
+   "words": 615
+  },
+  {
+   "chars": 3452,
+   "id": 30,
+   "text_sha256": null,
+   "title": "Chapter 11",
+   "type": "folder",
+   "words": 665
+  },
+  {
+   "chars": 1963,
+   "id": 43,
+   "text_sha256": "2ab5034553656a363f059248bd01c05c030ee38ace4aab254b7dc8fa64123a43",
+   "title": "Peter explains his actions",
+   "type": "md",
+   "words": 381
+  },
+  {
+   "chars": 1489,
+   "id": 44,
+   "text_sha256": "17c2c86620c6200b2f4fe0833c25aeadd716f602f062e7c205b984b5bf3e6ba8",
+   "title": "The Church in Antioch",
+   "type": "md",
+   "words": 284
+  },
+  {
+   "chars": 3371,
+   "id": 31,
+   "text_sha256": null,
+   "title": "Chapter 12",
+   "type": "folder",
+   "words": 652
+  },
+  {
+   "chars": 2469,
+   "id": 45,
+   "text_sha256": "110596560e8680c7563e56a095bd7ea35f52372d5d80c13013575c36f21c132f",
+   "title": "Peter escapes from prison",
+   "type": "md",
+   "words": 484
+  },
+  {
+   "chars": 902,
+   "id": 46,
+   "text_sha256": "aa7a9c76af85ae979a41f62d4f1ce964b51944f3f8416d8ad56029c7f10623bb",
+   "title": "Herod dies",
+   "type": "md",
+   "words": 168
+  },
+  {
+   "chars": 15024,
+   "id": 60,
+   "text_sha256": null,
+   "title": "To the extremities of the world",
+   "type": "folder",
+   "words": 2816
+  },
+  {
+   "chars": 15024,
+   "id": 47,
+   "text_sha256": null,
+   "title": "Asia Minor and Greece",
+   "type": "folder",
+   "words": 2816
+  },
+  {
+   "chars": 6537,
+   "id": 48,
+   "text_sha256": null,
+   "title": "Chapter 13",
+   "type": "folder",
+   "words": 1246
+  },
+  {
+   "chars": 426,
+   "id": 51,
+   "text_sha256": "c9e13266d84767968ce69cbe113023bfce80aa6e33eac4675cf03bcda4934951",
+   "title": "Saul and Barnabas are sent",
+   "type": "md",
+   "words": 79
+  },
+  {
+   "chars": 1197,
+   "id": 52,
+   "text_sha256": "937b7338d6016a0891d7008cc6d3218424efc4e9589ccd49af1a972549d53b20",
+   "title": "Cyprus",
+   "type": "md",
+   "words": 226
+  },
+  {
+   "chars": 4914,
+   "id": 53,
+   "text_sha256": "ee202228aad252f750977e853140a00c618c8ae2f0b0591714925c23158fc3f8",
+   "title": "Psidian Antioch",
+   "type": "md",
+   "words": 941
+  },
+  {
+   "chars": 3430,
+   "id": 49,
+   "text_sha256": null,
+   "title": "Chapter 14",
+   "type": "folder",
+   "words": 634
+  },
+  {
+   "chars": 768,
+   "id": 54,
+   "text_sha256": "107377e35fabbb16f0d68420bc2dc4912f519dadac84d5b382fa6a1ce0404a25",
+   "title": "Iconium",
+   "type": "md",
+   "words": 141
+  },
+  {
+   "chars": 1735,
+   "id": 55,
+   "text_sha256": "139b821f4ab89dc8e3f842b9845b1708dffbf150ce8f3f160b6cb17984f1fa8c",
+   "title": "Lystra and Derbe",
+   "type": "md",
+   "words": 325
+  },
+  {
+   "chars": 927,
+   "id": 56,
+   "text_sha256": "4c191fb9df03b59135fcf82d25099b52a4ad3cfe7f2797d02fbab004f8bd560f",
+   "title": "Back to Antioch",
+   "type": "md",
+   "words": 168
+  },
+  {
+   "chars": 5057,
+   "id": 50,
+   "text_sha256": null,
+   "title": "Chapter 15",
+   "type": "folder",
+   "words": 936
+  },
+  {
+   "chars": 2634,
+   "id": 57,
+   "text_sha256": "6ca78202e85a06fc6c054ba975e808c4850df09187a86b11a09a383a9f5109a2",
+   "title": "The Council at Jerusalem",
+   "type": "md",
+   "words": 495
+  },
+  {
+   "chars": 1737,
+   "id": 58,
+   "text_sha256": "6d81a34dd0ec0dc701126c97da70b9bdbdb60f002a753842197f7687c6c01b49",
+   "title": "The Council writes to gentile believers",
+   "type": "md",
+   "words": 312
+  },
+  {
+   "chars": 686,
+   "id": 59,
+   "text_sha256": "39ba1080fc8eb75f0849ca9a8ffe3df70b68595adbb0485fa627f7eeed8d4b51",
+   "title": "Paul and Barnabas fight and split",
+   "type": "md",
+   "words": 129
+  },
+  {
+   "chars": 0,
+   "id": 70,
+   "text_sha256": null,
+   "title": "Chapter 16",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 71,
+   "text_sha256": null,
+   "title": "Chapter 17",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 72,
+   "text_sha256": null,
+   "title": "Chapter 18",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 73,
+   "text_sha256": null,
+   "title": "Chapter 19",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 74,
+   "text_sha256": null,
+   "title": "Chapter 20",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 61,
+   "text_sha256": null,
+   "title": "Rome",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 62,
+   "text_sha256": null,
+   "title": "Chapter 21",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 63,
+   "text_sha256": null,
+   "title": "Chapter 22",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 64,
+   "text_sha256": null,
+   "title": "Chapter 23",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 65,
+   "text_sha256": null,
+   "title": "Chapter 24",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 66,
+   "text_sha256": null,
+   "title": "Chapter 25",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 67,
+   "text_sha256": null,
+   "title": "Chapter 26",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 68,
+   "text_sha256": null,
+   "title": "Chapter 27",
+   "type": "folder",
+   "words": 0
+  },
+  {
+   "chars": 0,
+   "id": 69,
+   "text_sha256": null,
+   "title": "Chapter 28",
+   "type": "folder",
+   "words": 0
+  }
+ ],
+ "labels": [
+  "Idea",
+  "Note",
+  "Chapter",
+  "Scene",
+  "Research"
+ ],
+ "plots": 3,
+ "status": [
+  "TODO",
+  "First draft",
+  "Second draft",
+  "Final"
+ ]
+}
