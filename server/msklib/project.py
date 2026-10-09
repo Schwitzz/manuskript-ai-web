@@ -21,6 +21,7 @@ import re
 import shutil
 import tempfile
 import time
+import zipfile
 from pathlib import Path
 
 from msklib.counts import char_count
@@ -74,6 +75,51 @@ class Project:
         self._xml_loaded: dict[str, bytes] = {}
         self.settings: dict = {}
         self.files_pending: dict[str, bytes] = {}  # extra files to write on the next save
+
+    class ReadOnlyError(Exception):
+        pass
+
+    read_only = False
+
+    @classmethod
+    def load_zip(cls, path: Path) -> "Project":
+        """Open a zipped project (a `.msk` file that is itself a zip, with MANUSKRIPT at its
+        root). Read-only: convert it to a folder with `extract_to` to edit it."""
+        with zipfile.ZipFile(path) as zf:
+            names = zf.namelist()
+            if "MANUSKRIPT" not in names:
+                raise ValueError("Not a version 1 Manuskript project (no MANUSKRIPT in the zip)")
+            proj = cls(Path(path))
+            for name in names:
+                norm = os.path.normpath(name)
+                if (os.path.isabs(name) or "\\" in name
+                        or any(part == ".." for part in norm.split(os.sep))):
+                    raise ValueError(f"Unsafe path in archive: {name}")
+                if name.endswith("/") or any(part.startswith(".") for part in norm.split(os.sep)):
+                    continue
+                data = zf.read(name)
+                if norm[-4:] in BINARY_SUFFIXES:
+                    proj.files[norm] = data
+                else:
+                    try:
+                        proj.files[norm] = data.decode("utf8").replace("\r\n", "\n").replace("\r", "\n")
+                    except UnicodeDecodeError:
+                        continue
+        proj.read_only = True
+        proj._build_outline()
+        proj._build_records()
+        return proj
+
+    def extract_to(self, dest: Path) -> "Project":
+        """Write every file of this (zipped) project into a new folder and open that."""
+        dest = Path(dest)
+        if dest.exists():
+            raise FileExistsError(str(dest))
+        dest.mkdir(parents=True)
+        out = Project(dest)
+        for rel, content in self.files.items():
+            out._write(rel, content)
+        return Project.load(dest)
 
     @classmethod
     def load(cls, root: Path) -> "Project":
@@ -158,6 +204,8 @@ class Project:
     def save(self) -> list[str]:
         """Write changed outline files, move renamed ones, trash removed ones.
         Returns the relative paths written."""
+        if self.read_only:
+            raise Project.ReadOnlyError("This project was opened from a zip and cannot be saved")
         self._update_char_counts()
         self._record_revisions()
         rendered = self.render_outline()

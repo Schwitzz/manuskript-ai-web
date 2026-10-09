@@ -14,6 +14,7 @@ from app import projects as store
 from app.auth.deps import current_user
 from app.schemas import ProjectName, TrashedOut
 from app.config import get_settings
+from msklib.project import Project
 
 router = APIRouter(prefix="/api/projects", tags=["project-ops"], dependencies=[Depends(current_user)])
 
@@ -123,3 +124,36 @@ async def upload_project(file: UploadFile):
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return {"name": top}
+
+
+@router.post("/import-msk", status_code=201, response_model=ProjectName)
+async def import_zipped_msk(file: UploadFile, name: str):
+    """Import a desktop-style zipped `.msk` file (files at the zip root) as a new editable
+    folder project called `name`."""
+    data = await file.read(MAX_UPLOAD + 1)
+    if len(data) > MAX_UPLOAD:
+        raise HTTPException(413, "Upload too large")
+    dest = store.project_path(name)
+    if dest.exists() or _marker(dest).exists():
+        raise HTTPException(409, "A project with that name already exists")
+    stamp = time.time_ns()
+    tmp_zip = dest.with_name(f".import-{stamp}.zip")
+    tmp_dir = dest.with_name(f".import-{stamp}")
+    try:
+        tmp_zip.parent.mkdir(parents=True, exist_ok=True)
+        tmp_zip.write_bytes(data)
+        try:
+            infos = zipfile.ZipFile(tmp_zip).infolist()
+            if len(infos) > MAX_FILES or sum(i.file_size for i in infos) > MAX_UNPACKED:
+                raise HTTPException(400, "Archive is too large")
+            Project.load_zip(tmp_zip).extract_to(tmp_dir)
+        except zipfile.BadZipFile:
+            raise HTTPException(400, "Not a zip file")
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        tmp_dir.rename(dest)
+        _marker(dest).write_text("1", encoding="utf8")
+    finally:
+        tmp_zip.unlink(missing_ok=True)
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+    return {"name": name}
