@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from app import projects as store
 from app.auth.deps import current_user
-from app.schemas import DocumentOut, OutlineOut, ProjectList, ProjectName, SavedOut
+from app.schemas import SampleList, DocumentOut, OutlineOut, ProjectList, ProjectName, SavedOut
 from msklib.counts import item_counts, word_count
 
 router = APIRouter(prefix="/api/projects", tags=["projects"], dependencies=[Depends(current_user)])
@@ -15,6 +15,7 @@ class NewProject(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     title: str = Field(default="", max_length=200)
     author: str = Field(default="", max_length=200)
+    sample: str | None = Field(default=None, max_length=100)  # copy a bundled sample instead
 
 
 class SaveDocument(BaseModel):
@@ -29,8 +30,16 @@ def list_projects():
 
 @router.post("", status_code=201, response_model=ProjectName)
 def create_project(body: NewProject):
-    store.create_project(body.name, body.title or body.name, body.author)
+    if body.sample:
+        store.create_from_sample(body.name, body.sample)
+    else:
+        store.create_project(body.name, body.title or body.name, body.author)
     return {"name": body.name}
+
+
+@router.get("/samples", response_model=SampleList)
+def list_samples():
+    return {"samples": store.list_samples()}
 
 
 @router.get("/{name}/outline", response_model=OutlineOut)

@@ -222,3 +222,7 @@ class RecoveryCodesOut(BaseModel):
 class MeOut(BaseModel):
     username: str
     totp_enabled: bool
+
+
+class SampleList(BaseModel):
+    samples: list[str]

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import shutil
 import threading
 from contextlib import contextmanager
 from pathlib import Path
@@ -82,6 +83,29 @@ def create_project(name: str, title: str, author: str = "") -> None:
             Project.create(path, title, author)
         except FileExistsError:
             raise HTTPException(409, "A project with that name already exists")
+
+
+SAMPLES_DIR = Path(__file__).parent / "samples"
+
+
+def list_samples() -> list[str]:
+    if not SAMPLES_DIR.is_dir():
+        return []
+    return sorted(d.name for d in SAMPLES_DIR.iterdir() if (d / "MANUSKRIPT").exists())
+
+
+def create_from_sample(name: str, sample: str) -> None:
+    """Copy a bundled sample project to a new project called `name`."""
+    if sample not in list_samples():
+        raise HTTPException(404, "Unknown sample")
+    path = project_path(name)
+    marker = path.with_name(path.name + ".msk")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with _lock_for(name):
+        if path.exists() or marker.exists():
+            raise HTTPException(409, "A project with that name already exists")
+        shutil.copytree(SAMPLES_DIR / sample, path, ignore=shutil.ignore_patterns(".*"))
+        marker.write_text("1", encoding="utf8")
 
 
 def doc_version(item: Item) -> str:

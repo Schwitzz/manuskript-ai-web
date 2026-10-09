@@ -150,6 +150,7 @@ export interface NewProject {
 	name: string;
 	title?: string;
 	author?: string;
+	sample?: string | null;
 }
 
 export interface Ok {
@@ -255,6 +256,10 @@ export interface RevisionRulesOut {
 
 export interface RevisionsOut {
 	revisions: RevisionRef[];
+}
+
+export interface SampleList {
+	samples: string[];
 }
 
 export interface SaveDocument {
@@ -392,6 +397,7 @@ export interface Routes {
 	"POST /api/projects/import-msk": { body: never; response: ProjectName };
 	"GET /api/projects": { body: never; response: ProjectList };
 	"POST /api/projects": { body: NewProject; response: ProjectName };
+	"GET /api/projects/samples": { body: never; response: SampleList };
 	"GET /api/projects/{name}/outline": { body: never; response: OutlineOut };
 	"POST /api/projects/{name}/outline": { body: NewItem; response: OutlineItemOut };
 	"GET /api/projects/{name}/documents/{item_id}": { body: never; response: DocumentOut };
