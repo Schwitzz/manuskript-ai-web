@@ -15,7 +15,7 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
-from app import events
+from app import events, synclock
 from app.config import get_settings
 from msklib.model import Item
 from msklib.project import Project
@@ -56,6 +56,19 @@ def list_projects() -> list[dict]:
     return out
 
 
+def _guard_writes(project: Project, path: Path) -> None:
+    """While a sync pass holds the .lock marker, reads work but any save is refused (423).
+    Done on the Project itself so no endpoint can forget to check."""
+    real_save = project.save
+
+    def guarded_save():
+        if synclock.is_locked(path):
+            raise HTTPException(423, "A sync is running for this project. Try again in a moment.")
+        return real_save()
+
+    project.save = guarded_save  # type: ignore[method-assign]
+
+
 def _lock_for(name: str) -> threading.Lock:
     with _locks_guard:
         return _locks.setdefault(name, threading.Lock())
@@ -69,7 +82,9 @@ def open_project(name: str):
         raise HTTPException(404, "Project not found")
     with _lock_for(name):
         before = events.signature(path) if events.has_subscribers() else None
-        yield Project.load(path)
+        project = Project.load(path)
+        _guard_writes(project, path)
+        yield project
         if before is not None and events.signature(path) != before:
             events.note_signature(name, path)
             events.publish({"type": "changed", "project": name, "source": "api"})
