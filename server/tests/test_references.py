@@ -48,13 +48,19 @@ def test_a_new_reference_shows_up_and_deleting_the_target_breaks_it(logged_in, t
                     json={"notes": "Meets {C:4:Herod} and {W:5:Rome}"})
     before_rome = {b["id"] for b in R.backlinks(Project.load(FIX), "world", 5)}
     assert 12 not in before_rome
-    assert [b["id"] for b in logged_in.get(f"{B}/character/4").json()["backlinks"]] == [12]
+    before_herod = {b["id"] for b in R.backlinks(Project.load(FIX), "character", 4)}
+    assert 12 not in before_herod
+    after_herod = {b["id"] for b in logged_in.get(f"{B}/character/4").json()["backlinks"]}
+    assert after_herod == before_herod | {12}
     after_rome = {b["id"] for b in logged_in.get(f"{B}/world/5").json()["backlinks"]}
     assert after_rome == before_rome | {12}
     logged_in.delete("/api/projects/acts/characters/4", headers=h)
     broken = logged_in.get(f"{B}/broken").json()["broken"]
-    assert broken == [{"source_kind": "scene", "source_id": 12, "source_title": "Peter preaches",
-                       "field": "notes", "target_kind": "character", "target_id": 4}]
+    mine = {"source_kind": "scene", "source_id": 12, "source_title": "Peter preaches",
+            "field": "notes", "target_kind": "character", "target_id": 4}
+    assert mine in broken                                  # the one we just created
+    assert {b["target_id"] for b in broken} == {4}         # and only Herod's links broke
+    assert {b["source_id"] for b in broken} == before_herod | {12}
     assert logged_in.get(f"{B}/character/4").status_code == 404
 
 
