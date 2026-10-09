@@ -38,6 +38,20 @@ def _read(path: Path) -> str | bytes:
         return fh.read()
 
 
+def _fsync_dir(path: Path) -> None:
+    """Make the rename itself durable (not available on every platform)."""
+    try:
+        fd = os.open(path, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass
+    finally:
+        os.close(fd)
+
+
 def _sort_key(name: str) -> tuple[int, str]:
     m = re.match(r"^(\d+)-", name)
     return (int(m.group(1)) if m else 10**9, name)
@@ -246,10 +260,15 @@ class Project:
             if isinstance(content, bytes):
                 with os.fdopen(fd, "wb") as fh:
                     fh.write(content)
+                    fh.flush()
+                    os.fsync(fh.fileno())
             else:
                 with os.fdopen(fd, "wt", encoding="utf8", newline="\n") as fh:
                     fh.write(content)
+                    fh.flush()
+                    os.fsync(fh.fileno())
             os.replace(tmp, target)
+            _fsync_dir(target.parent)
         except BaseException:
             if os.path.exists(tmp):
                 os.unlink(tmp)
