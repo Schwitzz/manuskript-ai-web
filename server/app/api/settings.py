@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app import projects as store
 from app.auth.deps import current_user
+from app.schemas import SettingsOut
 from msklib.revisions import DEFAULT_RULES
 
 router = APIRouter(prefix="/api/projects/{name}/settings", tags=["settings"],
@@ -46,13 +47,13 @@ def _view(settings: dict) -> dict:
     }
 
 
-@router.get("")
+@router.get("", response_model=SettingsOut, response_model_by_alias=True)
 def get_settings(name: str):
     with store.open_project(name) as p:
         return _view(p.settings)
 
 
-@router.patch("")
+@router.patch("", response_model=SettingsOut, response_model_by_alias=True)
 def update_settings(name: str, body: SettingsIn):
     with store.open_project(name) as p:
         for key, value in body.model_dump(exclude_unset=True, by_alias=True).items():

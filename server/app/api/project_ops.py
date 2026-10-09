@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from app import projects as store
 from app.auth.deps import current_user
+from app.schemas import ProjectName, TrashedOut
 from app.config import get_settings
 
 router = APIRouter(prefix="/api/projects", tags=["project-ops"], dependencies=[Depends(current_user)])
@@ -29,7 +30,7 @@ def _marker(path):
     return path.with_name(path.name + ".msk")
 
 
-@router.post("/{name}/rename")
+@router.post("/{name}/rename", response_model=ProjectName)
 def rename_project(name: str, body: RenameProject):
     src = store.project_path(name)
     dst = store.project_path(body.new_name)
@@ -44,7 +45,7 @@ def rename_project(name: str, body: RenameProject):
     return {"name": body.new_name}
 
 
-@router.delete("/{name}")
+@router.delete("/{name}", response_model=TrashedOut)
 def delete_project(name: str):
     """Moves the whole project to projects/.trash; nothing is hard deleted."""
     src = store.project_path(name)
@@ -98,7 +99,7 @@ def _safe_members(zf: zipfile.ZipFile) -> tuple[str, list[zipfile.ZipInfo]]:
     return top, infos
 
 
-@router.post("/upload", status_code=201)
+@router.post("/upload", status_code=201, response_model=ProjectName)
 async def upload_project(file: UploadFile):
     data = await file.read(MAX_UPLOAD + 1)
     if len(data) > MAX_UPLOAD:

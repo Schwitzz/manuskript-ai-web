@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from app import projects as store
 from app.auth.deps import current_user
+from app.schemas import Ok, OutlineItemOut
 from msklib.model import Item
 
 router = APIRouter(prefix="/api/projects/{name}/outline", tags=["outline"],
@@ -71,7 +72,7 @@ def _attach(item: Item, parent: Item, position: int | None) -> None:
         parent.children.insert(max(position, 0), item)
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, response_model=OutlineItemOut)
 def create_item(name: str, body: NewItem):
     with store.open_project(name) as p:
         item = Item(id=p.next_id(), title=body.title, type=body.type, meta={"compile": "2"})
@@ -80,7 +81,7 @@ def create_item(name: str, body: NewItem):
         return store.item_summary(item)
 
 
-@router.patch("/{item_id}/title")
+@router.patch("/{item_id}/title", response_model=OutlineItemOut)
 def rename_item(name: str, item_id: int, body: Rename):
     with store.open_project(name) as p:
         item = _item(p, item_id)
@@ -89,7 +90,7 @@ def rename_item(name: str, item_id: int, body: Rename):
         return store.item_summary(item)
 
 
-@router.post("/{item_id}/move")
+@router.post("/{item_id}/move", response_model=Ok)
 def move_item(name: str, item_id: int, body: MoveItem):
     with store.open_project(name) as p:
         item = _item(p, item_id)
@@ -105,7 +106,7 @@ def move_item(name: str, item_id: int, body: MoveItem):
         return {"ok": True}
 
 
-@router.patch("/{item_id}/fields")
+@router.patch("/{item_id}/fields", response_model=OutlineItemOut)
 def set_fields(name: str, item_id: int, body: Fields):
     with store.open_project(name) as p:
         item = _item(p, item_id)
@@ -119,7 +120,7 @@ def set_fields(name: str, item_id: int, body: Fields):
         return store.item_summary(item)
 
 
-@router.delete("/{item_id}")
+@router.delete("/{item_id}", response_model=Ok)
 def delete_item(name: str, item_id: int):
     """Moves the item (and anything inside it) to .trash; nothing is hard deleted."""
     with store.open_project(name) as p:

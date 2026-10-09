@@ -44,3 +44,33 @@ export interface AuthStatus {
 	authenticated: boolean;
 	totp_pending: boolean;
 }
+
+import type { Routes } from './api-types.ts';
+
+type RouteKey = keyof Routes;
+type ParamsOf<K extends string> = K extends `${string}{${infer P}}${infer Rest}`
+? P | ParamsOf<Rest>
+: never;
+
+/**
+ * Typed call: the route string, its path parameters, the request body and the response are
+ * all checked against the server's OpenAPI schema.
+ *   await call('GET /api/projects/{name}/outline', { params: { name: 'acts' } })
+ */
+export async function call<K extends RouteKey>(
+route: K,
+opts: (Routes[K]['body'] extends never ? { body?: never } : { body: Routes[K]['body'] }) &
+(ParamsOf<K> extends never
+? { params?: never }
+: { params: Record<ParamsOf<K>, string | number> }) &
+{ query?: Record<string, string | number | boolean> } = {} as never
+): Promise<Routes[K]['response']> {
+const [method, template] = (route as string).split(' ');
+const o = opts as { body?: unknown; params?: Record<string, string | number>; query?: Record<string, string | number | boolean> };
+let path = template.replace(/\{(\w+)\}/g, (_m, k: string) => encodeURIComponent(String(o.params?.[k])));
+if (o.query) {
+const qs = new URLSearchParams(Object.entries(o.query).map(([k, v]) => [k, String(v)]));
+path += '?' + qs.toString();
+}
+return api(method, path, o.body) as Promise<Routes[K]['response']>;
+}

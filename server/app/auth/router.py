@@ -13,6 +13,7 @@ from app.auth.deps import current_user, enforce_csrf
 from app.auth.netutil import client_ip, ip_allowed, request_is_https
 from app.config import get_settings
 from app.db import db
+from app.schemas import AuthStatusOut, LoginOut, MeOut, Ok, RecoveryCodesOut, TotpSetupOut
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -57,7 +58,7 @@ def _guard_login(request: Request, username: str) -> list[str]:
     return keys
 
 
-@router.get("/status")
+@router.get("/status", response_model=AuthStatusOut)
 def status(request: Request):
     data = sec.read_session(request.cookies.get(sec.SESSION_COOKIE))
     return {
@@ -67,7 +68,7 @@ def status(request: Request):
     }
 
 
-@router.post("/setup")
+@router.post("/setup", response_model=Ok)
 def setup(body: SetupBody, request: Request, response: Response):
     if not ip_allowed(client_ip(request)):
         raise HTTPException(403, "Setup not allowed from this address")
@@ -82,7 +83,7 @@ def setup(body: SetupBody, request: Request, response: Response):
     return {"ok": True}
 
 
-@router.post("/login")
+@router.post("/login", response_model=LoginOut)
 def login(body: Credentials, request: Request, response: Response):
     keys = _guard_login(request, body.username)
     with db() as conn:
@@ -100,7 +101,7 @@ def login(body: Credentials, request: Request, response: Response):
     return {"ok": True, "totp_required": False}
 
 
-@router.post("/totp/verify")
+@router.post("/totp/verify", response_model=Ok)
 def totp_verify(body: CodeBody, request: Request, response: Response):
     enforce_csrf(request)
     data = sec.read_session(request.cookies.get(sec.SESSION_COOKIE))
@@ -128,7 +129,7 @@ def totp_verify(body: CodeBody, request: Request, response: Response):
     return {"ok": True}
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=Ok)
 def logout(request: Request, response: Response):
     enforce_csrf(request)
     response.delete_cookie(sec.SESSION_COOKIE, path="/")
@@ -136,7 +137,7 @@ def logout(request: Request, response: Response):
     return {"ok": True}
 
 
-@router.post("/totp/setup")
+@router.post("/totp/setup", response_model=TotpSetupOut)
 def totp_setup(user: dict = Depends(current_user)):
     """Start enrolment: returns secret + QR. Not enforced until /totp/enable succeeds."""
     secret = sec.new_totp_secret()
@@ -150,7 +151,7 @@ def totp_setup(user: dict = Depends(current_user)):
             "qr_svg_base64": base64.b64encode(buf.getvalue()).decode()}
 
 
-@router.post("/totp/enable")
+@router.post("/totp/enable", response_model=RecoveryCodesOut)
 def totp_enable(body: CodeBody, user: dict = Depends(current_user)):
     if not user["totp_secret"] or not sec.verify_totp(user["totp_secret"], body.code):
         raise HTTPException(400, "Wrong code")
@@ -161,7 +162,7 @@ def totp_enable(body: CodeBody, user: dict = Depends(current_user)):
     return {"ok": True, "recovery_codes": codes}  # shown once
 
 
-@router.post("/totp/disable")
+@router.post("/totp/disable", response_model=Ok)
 def totp_disable(body: CodeBody, user: dict = Depends(current_user)):
     if not user["totp_enabled"] or not sec.verify_totp(user["totp_secret"], body.code):
         raise HTTPException(400, "Wrong code")
@@ -171,6 +172,6 @@ def totp_disable(body: CodeBody, user: dict = Depends(current_user)):
     return {"ok": True}
 
 
-@router.get("/me")
+@router.get("/me", response_model=MeOut)
 def me(user: dict = Depends(current_user)):
     return {"username": user["username"], "totp_enabled": bool(user["totp_enabled"])}

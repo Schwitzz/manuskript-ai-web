@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app import projects as store
 from app.auth.deps import current_user
+from app.schemas import CharacterOut, CharactersOut, InfoAndSummaryOut, InfoOut, LabelsAndStatusOut, LabelsOut, Ok, StatusOut, SummaryOut
 from msklib.records import Character, Label
 
 router = APIRouter(prefix="/api/projects/{name}", tags=["records"],
@@ -61,13 +62,13 @@ def _find_char(p, char_id: int) -> Character:
     return c
 
 
-@router.get("/characters")
+@router.get("/characters", response_model=CharactersOut)
 def list_characters(name: str):
     with store.open_project(name) as p:
         return {"characters": [_char(c) for c in p.characters]}
 
 
-@router.post("/characters", status_code=201)
+@router.post("/characters", status_code=201, response_model=CharacterOut)
 def create_character(name: str, body: CharacterIn):
     with store.open_project(name) as p:
         c = Character(id=max([c.id for c in p.characters] + [-1]) + 1, **body.model_dump())
@@ -76,7 +77,7 @@ def create_character(name: str, body: CharacterIn):
         return _char(c)
 
 
-@router.put("/characters/{char_id}")
+@router.put("/characters/{char_id}", response_model=CharacterOut)
 def update_character(name: str, char_id: int, body: CharacterIn):
     with store.open_project(name) as p:
         c = _find_char(p, char_id)
@@ -86,7 +87,7 @@ def update_character(name: str, char_id: int, body: CharacterIn):
         return _char(c)
 
 
-@router.delete("/characters/{char_id}")
+@router.delete("/characters/{char_id}", response_model=Ok)
 def delete_character(name: str, char_id: int):
     with store.open_project(name) as p:
         c = _find_char(p, char_id)
@@ -98,13 +99,13 @@ def delete_character(name: str, char_id: int):
         return {"ok": True}
 
 
-@router.get("/labels")
+@router.get("/labels", response_model=LabelsAndStatusOut)
 def get_labels(name: str):
     with store.open_project(name) as p:
         return {"labels": [asdict(lb) for lb in p.labels], "status": p.status}
 
 
-@router.put("/labels")
+@router.put("/labels", response_model=LabelsOut)
 def set_labels(name: str, body: LabelsIn):
     with store.open_project(name) as p:
         p.labels = [Label(lb.name, lb.color) for lb in body.labels]
@@ -112,7 +113,7 @@ def set_labels(name: str, body: LabelsIn):
         return {"labels": [asdict(lb) for lb in p.labels]}
 
 
-@router.put("/status")
+@router.put("/status", response_model=StatusOut)
 def set_status(name: str, body: StatusIn):
     with store.open_project(name) as p:
         p.status = [s for s in body.status if s.strip()]
@@ -120,13 +121,13 @@ def set_status(name: str, body: StatusIn):
         return {"status": p.status}
 
 
-@router.get("/info")
+@router.get("/info", response_model=InfoAndSummaryOut)
 def get_info(name: str):
     with store.open_project(name) as p:
         return {"info": p.infos, "summary": p.summary}
 
 
-@router.put("/info")
+@router.put("/info", response_model=InfoOut)
 def set_info(name: str, body: KeyedIn):
     with store.open_project(name) as p:
         p.infos = {k: v for k, v in body.values.items() if v.strip()}
@@ -134,7 +135,7 @@ def set_info(name: str, body: KeyedIn):
         return {"info": p.infos}
 
 
-@router.put("/summary")
+@router.put("/summary", response_model=SummaryOut)
 def set_summary(name: str, body: KeyedIn):
     with store.open_project(name) as p:
         p.summary = {k: v for k, v in body.values.items() if v.strip()}

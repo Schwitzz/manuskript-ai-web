@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from app import projects as store
 from app.auth.deps import current_user
+from app.schemas import DocumentOut, OutlineOut, ProjectList, ProjectName, SavedOut
 from msklib.counts import item_counts, word_count
 
 router = APIRouter(prefix="/api/projects", tags=["projects"], dependencies=[Depends(current_user)])
@@ -21,18 +22,18 @@ class SaveDocument(BaseModel):
     base_version: str  # the version the browser last loaded; a mismatch means a stale save
 
 
-@router.get("")
+@router.get("", response_model=ProjectList)
 def list_projects():
     return {"projects": store.list_projects()}
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, response_model=ProjectName)
 def create_project(body: NewProject):
     store.create_project(body.name, body.title or body.name, body.author)
     return {"name": body.name}
 
 
-@router.get("/{name}/outline")
+@router.get("/{name}/outline", response_model=OutlineOut)
 def outline(name: str):
     with store.open_project(name) as p:
         words, chars = item_counts(p.outline)
@@ -40,7 +41,7 @@ def outline(name: str):
                 "items": [store.item_summary(c) for c in p.outline.children]}
 
 
-@router.get("/{name}/documents/{item_id}")
+@router.get("/{name}/documents/{item_id}", response_model=DocumentOut)
 def read_document(name: str, item_id: int):
     with store.open_project(name) as p:
         item = p.find(item_id)
@@ -50,7 +51,7 @@ def read_document(name: str, item_id: int):
                 "version": store.doc_version(item), "words": word_count(item.text)}
 
 
-@router.put("/{name}/documents/{item_id}")
+@router.put("/{name}/documents/{item_id}", response_model=SavedOut)
 def save_document(name: str, item_id: int, body: SaveDocument):
     with store.open_project(name) as p:
         item = p.find(item_id)

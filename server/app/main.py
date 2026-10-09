@@ -20,6 +20,7 @@ from app.auth.router import router as auth_router
 from app import events
 from app.config import get_settings
 from app.db import init_db
+from app.schemas import HealthOut
 
 
 @asynccontextmanager
@@ -34,7 +35,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Manuskript AI", version="0.1.0", lifespan=lifespan,
                   docs_url="/api/docs", openapi_url="/api/openapi.json")
 
-    @app.get("/api/health")
+    @app.get("/api/health", response_model=HealthOut)
     def health():
         return {"status": "ok", "version": app.version}
 

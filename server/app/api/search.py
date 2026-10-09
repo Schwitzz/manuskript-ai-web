@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app import projects as store
 from app.auth.deps import current_user
+from app.schemas import SearchOut
 
 router = APIRouter(prefix="/api/projects/{name}/search", tags=["search"],
                    dependencies=[Depends(current_user)])
@@ -29,7 +30,7 @@ def _snippets(text: str, pattern: re.Pattern, limit: int = 3) -> list[str]:
     return out
 
 
-@router.get("")
+@router.get("", response_model=SearchOut)
 def search(name: str, q: str = Query(min_length=1, max_length=200),
            scope: str = "text,summary,notes,characters", case: bool = False, word: bool = False):
     scopes = {s for s in scope.split(",") if s in SCOPES} or SCOPES

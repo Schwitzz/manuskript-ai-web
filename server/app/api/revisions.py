@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from app import projects as store
 from app.auth.deps import current_user
+from app.schemas import RestoredOut, RevisionOut, RevisionsOut
 from msklib.counts import word_count
 from msklib.revisions import Revisions
 
@@ -24,7 +25,7 @@ def _revs(p, item_id: int):
     return item, Revisions(raw if isinstance(raw, bytes) else None).get(item_id)
 
 
-@router.get("")
+@router.get("", response_model=RevisionsOut)
 def list_revisions(name: str, item_id: int):
     with store.open_project(name) as p:
         _item, revs = _revs(p, item_id)
@@ -32,7 +33,7 @@ def list_revisions(name: str, item_id: int):
                               for ts, text in sorted(revs, reverse=True)]}
 
 
-@router.get("/{timestamp}")
+@router.get("/{timestamp}", response_model=RevisionOut)
 def read_revision(name: str, item_id: int, timestamp: int):
     with store.open_project(name) as p:
         _item, revs = _revs(p, item_id)
@@ -42,7 +43,7 @@ def read_revision(name: str, item_id: int, timestamp: int):
         raise HTTPException(404, "Revision not found")
 
 
-@router.post("/{timestamp}/restore")
+@router.post("/{timestamp}/restore", response_model=RestoredOut)
 def restore_revision(name: str, item_id: int, timestamp: int, body: Restore):
     with store.open_project(name) as p:
         item, revs = _revs(p, item_id)
