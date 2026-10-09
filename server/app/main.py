@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.outline import router as outline_router
 from app.api.plots_world import router as plots_world_router
+from app.api.project_ops import router as project_ops_router
 from app.api.projects import router as projects_router
 from app.api.records import router as records_router
 from app.auth.router import router as auth_router
@@ -30,6 +31,7 @@ def create_app() -> FastAPI:
         return {"status": "ok", "version": app.version}
 
     app.include_router(auth_router)
+    app.include_router(project_ops_router)
     app.include_router(projects_router)
     app.include_router(outline_router)
     app.include_router(records_router)
