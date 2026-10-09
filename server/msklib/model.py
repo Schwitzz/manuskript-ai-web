@@ -24,6 +24,7 @@ class Item:
     parent: "Item | None" = field(default=None, repr=False)
     last_path: str = ""  # where it was read from / last written
     loaded_text: str | None = None  # text as read, to detect edits
+    _names: dict[int, str] | None = field(default=None, repr=False, compare=False)
 
     @property
     def is_folder(self) -> bool:
@@ -65,13 +66,32 @@ class Item:
         """Relative path where this item is stored (folders: the directory)."""
         if self.parent is None:
             return "outline"
-        siblings = self.parent.children
-        mine = clean_value(self.title)
-        titles = [clean_value(s.title) for s in siblings]
-        title = f"{mine}-{self.id}" if titles.count(mine) > 1 else mine
-        name = "{}-{}{}".format(str(self.row()).zfill(len(str(len(siblings)))), slugify(title),
-                                "" if self.is_folder else ".md")
-        return self.parent.path() + "/" + name
+        return self.parent.path() + "/" + self.parent.child_names()[id(self)]
+
+    def child_names(self) -> dict[int, str]:
+        """Names of all children, cached until `forget_names()` (Project.save does that).
+        Without the cache every item recomputed all of its siblings: quadratic per folder."""
+        if self._names is None:
+            self._names = self._child_names()
+        return self._names
+
+    def forget_names(self) -> None:
+        self._names = None
+
+    def _child_names(self) -> dict[int, str]:
+        """File/folder name of every child, computed once per parent (linear, not quadratic)."""
+        cleaned = [clean_value(c.title) for c in self.children]
+        counts: dict[str, int] = {}
+        for t in cleaned:
+            counts[t] = counts.get(t, 0) + 1
+        width = len(str(len(self.children)))
+        names = {}
+        for row, (child, title) in enumerate(zip(self.children, cleaned)):
+            if counts[title] > 1:
+                title = f"{title}-{child.id}"
+            names[id(child)] = "{}-{}{}".format(str(row).zfill(width), slugify(title),
+                                               "" if child.is_folder else ".md")
+        return names
 
     def file_path(self) -> str:
         return self.path() + "/folder.txt" if self.is_folder else self.path()

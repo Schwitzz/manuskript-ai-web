@@ -198,6 +198,11 @@ class Project:
 
     # ---- saving ----
 
+    def forget_names(self) -> None:
+        """Drop cached file names: call whenever titles, order or parents may have changed."""
+        for it in [self.outline, *self.outline.walk()]:
+            it.forget_names()
+
     def render_outline(self) -> dict[str, str]:
         return {item.file_path(): item.to_mmd() for item in self.outline.walk()}
 
@@ -206,6 +211,7 @@ class Project:
         Returns the relative paths written."""
         if self.read_only:
             raise Project.ReadOnlyError("This project was opened from a zip and cannot be saved")
+        self.forget_names()
         self._update_char_counts()
         self._record_revisions()
         rendered = self.render_outline()
@@ -236,6 +242,7 @@ class Project:
             if self.files.get(rel) != content:
                 self._write(rel, content)
                 written.append(rel)
+        self.forget_names()
         for item in self.outline.walk():
             item.last_path = item.path() if item.is_folder else item.file_path()
             if not item.is_folder:
