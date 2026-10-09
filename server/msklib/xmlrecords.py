@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 
 from lxml import etree as ET
 
+from msklib.revisions import xml_clean
+
 _PARSER = ET.XMLParser(huge_tree=True)
 
 PLOT_ORDER = ["name", "ID", "importance", "characters", "description", "result", "steps", "summary"]
@@ -18,10 +20,11 @@ WORLD_ORDER = ["name", "ID", "description", "passion", "conflict"]
 
 
 def _ordered(attrs: dict[str, str], order: list[str], keep_empty: bool) -> dict[str, str]:
-    out = {k: attrs[k] for k in order if k in attrs and (keep_empty or attrs[k])}
+    """Attributes in desktop order. Characters XML cannot hold are dropped (as desktop does)."""
+    out = {k: xml_clean(attrs[k]) for k in order if k in attrs and (keep_empty or attrs[k])}
     for k, v in attrs.items():  # unknown attributes are preserved
         if k not in out and (keep_empty or v):
-            out[k] = v
+            out[k] = xml_clean(v)
     return out
 
 
