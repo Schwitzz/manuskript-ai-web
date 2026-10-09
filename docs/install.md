@@ -1,7 +1,7 @@
 # Install
 
 1. Copy `.env.example` to `.env`. Set `MSK_SECRET_KEY` (`openssl rand -hex 32`).
-2. Put your projects in `./data/projects/` (a Manuskript project is a folder holding a `MANUSKRIPT` file).
+2. Create the data folders yourself, as your user: `mkdir -p data/projects data/app` (if Docker creates them they end up owned by root). Set `MSK_UID`/`MSK_GID` in `.env` to `id -u` / `id -g`. Put your projects in `./data/projects/` (a Manuskript project is a folder holding a `MANUSKRIPT` file).
 3. `docker compose up -d`, then open `http://<host>:8000`.
 4. First visit asks you to create the one account. This page only works while no account exists.
 5. Open More, then Two-factor login, to turn on an authenticator app. Save the 10 recovery codes.
