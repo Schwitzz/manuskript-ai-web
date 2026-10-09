@@ -9,3 +9,5 @@ web/screenshots
 data
 .env
 .git
+server/tests
+server/tools
