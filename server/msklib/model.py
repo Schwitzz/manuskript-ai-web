@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from msklib.legacy import modernise
 from msklib.format import clean_value, format_meta, parse_mmd, slugify
 
 # Order of the metadata keys in a file (the desktop Outline enum order).
@@ -60,6 +61,11 @@ class Item:
         )
         item.meta = meta
         item.loaded_text = body
+        new_type, item.text, notes = modernise(item.type, body, meta.get("notes", ""))
+        if new_type != item.type:  # legacy type: now Markdown; the next save writes it so
+            item.type = new_type
+            if notes:
+                item.meta["notes"] = notes
         return item
 
     def path(self) -> str:
