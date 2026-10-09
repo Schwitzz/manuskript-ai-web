@@ -55,6 +55,7 @@ class Project:
         self.characters: list[Character] = []
         self.plots: list[Plot] = []
         self.world: list[WorldItem] = []
+        self._xml_loaded: dict[str, bytes] = {}
 
     @classmethod
     def load(cls, root: Path) -> "Project":
@@ -88,7 +89,6 @@ class Project:
                  if p.startswith("characters" + os.sep) and p.endswith(".txt")
                  and isinstance(self.files[p], str)]
         self.characters = sorted(chars, key=lambda c: c.id)
-        self._xml_loaded = {}
         for rel, parser, attr in (("plots.xml", parse_plots, "plots"),
                                   ("world.opml", parse_world, "world")):
             raw = self.files.get(rel)
@@ -273,3 +273,37 @@ class Project:
         for dirpath, _dirs, _files in os.walk(outline, topdown=False):
             if dirpath != str(outline) and not os.listdir(dirpath):
                 os.rmdir(dirpath)
+
+    # ---- helpers for the server ----
+
+    def next_id(self) -> int:
+        """An ID not used by any outline item."""
+        return max([i.id for i in self.outline.walk()] + [0]) + 1
+
+    def find(self, item_id: int) -> Item | None:
+        return next((i for i in self.outline.walk() if i.id == item_id), None)
+
+    @classmethod
+    def create(cls, root: Path, title: str, author: str = "") -> "Project":
+        """Create a new blank project at `root` (a folder that must not exist yet) plus the
+        `<root>.msk` marker beside it, like desktop Manuskript does."""
+        root = Path(root)
+        if root.exists() or root.with_name(root.name + ".msk").exists():
+            raise FileExistsError(str(root))
+        root.mkdir(parents=True)
+        proj = cls(root)
+        proj.infos = {"Title": title, **({"Author": author} if author else {})}
+        proj.labels = [Label("Idea", "#ffff00"), Label("Note", "#00ff00"),
+                       Label("Chapter", "#0000ff"), Label("Scene", "#ff0000"),
+                       Label("Research", "#00ffff")]
+        proj.status = ["TODO", "First draft", "Second draft", "Final"]
+        folder = Item(id=1, title="Draft", type="folder", meta={"compile": "2"}, parent=proj.outline)
+        scene = Item(id=2, title="Chapter 1", type="md", meta={"compile": "2"}, parent=folder)
+        folder.children.append(scene)
+        proj.outline.children.append(folder)
+        proj._write("MANUSKRIPT", "1")
+        proj._write("settings.txt", json.dumps({"viewMode": "fiction", "defaultTextType": "md",
+                                                "countSpaces": True}, indent=4, sort_keys=True))
+        proj.save()
+        root.with_name(root.name + ".msk").write_text("1", encoding="utf8")
+        return proj
