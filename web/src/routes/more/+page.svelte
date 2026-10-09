@@ -1,6 +1,7 @@
 <script lang="ts">
 import AppShell from '#lib/components/AppShell.svelte';
-import InstallPrompt from '#lib/components/InstallPrompt.svelte';
+import AppearanceSettings from '#lib/components/AppearanceSettings.svelte';
+	import InstallPrompt from '#lib/components/InstallPrompt.svelte';
 import TwoFactor from '#lib/components/TwoFactor.svelte';
 import { auth } from '#lib/stores/auth.svelte.ts';
 import { LogOut } from '@lucide/svelte';
@@ -8,6 +9,7 @@ import { LogOut } from '@lucide/svelte';
 
 <AppShell title="More">
 <div class="mx-auto flex max-w-xl flex-col gap-4">
+<AppearanceSettings />
 <TwoFactor />
 <InstallPrompt />
 <button

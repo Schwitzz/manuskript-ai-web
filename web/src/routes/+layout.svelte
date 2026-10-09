@@ -2,6 +2,7 @@
 	import './layout.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import { auth } from '#lib/stores/auth.svelte.ts';
+	import { appearance } from '#lib/stores/appearance.svelte.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
@@ -9,6 +10,10 @@
 
 	let { children }: LayoutProps = $props();
 	let ready = $state(false);
+
+	// The app is client-only (ssr = false) and renders nothing until the auth check is done,
+	// so applying the saved theme here happens before any content is painted.
+	appearance.init();
 
 	onMount(async () => {
 		if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -31,7 +36,7 @@
 <svelte:head>
 	<link rel="icon" href={favicon} />
 	<link rel="manifest" href="/manifest.webmanifest" />
-	<meta name="theme-color" content="#2f5d8a" />
+	<meta name="theme-color" content={appearance.active?.window ?? "#14161b"} />
 	<title>Manuskript AI</title>
 </svelte:head>
 

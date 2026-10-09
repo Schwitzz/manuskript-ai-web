@@ -1,26 +1,22 @@
 @import 'tailwindcss';
 
-/* Theme variables. Phase 3 ports the 31 desktop schemes onto these names. */
+/* Colours come from the theme engine (src/lib/themes) as CSS variables on <html>.
+   These fallbacks are the Midnight scheme, used only until the engine has run. */
 :root {
-	--bg: #f7f5f0;
-	--surface: #ffffff;
-	--text: #1d1d1b;
-	--muted: #6b6a66;
-	--border: #dcd8cf;
-	--accent: #2f5d8a;
-	--accent-text: #ffffff;
-	--danger: #b3261e;
+--bg: #14161b;
+--surface: #1b1e25;
+--editor: #0f1115;
+--text: #e4e6eb;
+--muted: #9aa0ac;
+--accent: #6ea8fe;
+--accent-text: #000000;
+--danger: #f2677a;
+--border: #393b40;
+--ui-scale: 1;
 }
 
-:root[data-theme='dark'] {
-	--bg: #16171a;
-	--surface: #202226;
-	--text: #ececea;
-	--muted: #9b9ba0;
-	--border: #33363c;
-	--accent: #7aa7d6;
-	--accent-text: #10141a;
-	--danger: #f2827a;
+html {
+font-size: calc(16px * var(--ui-scale));
 }
 
 html,
