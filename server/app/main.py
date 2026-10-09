@@ -15,6 +15,7 @@ from app.api.projects import router as projects_router
 from app.api.records import router as records_router
 from app.api.revisions import router as revisions_router
 from app.api.search import router as search_router
+from app.api.settings import router as settings_router
 from app.auth.router import router as auth_router
 from app import events
 from app.config import get_settings
@@ -46,6 +47,7 @@ def create_app() -> FastAPI:
     app.include_router(search_router)
     app.include_router(revisions_router)
     app.include_router(events_router)
+    app.include_router(settings_router)
 
     static = get_settings().static_dir
     if static and static.is_dir():

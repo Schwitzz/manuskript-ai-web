@@ -72,6 +72,7 @@ class Project:
         self.plots: list[Plot] = []
         self.world: list[WorldItem] = []
         self._xml_loaded: dict[str, bytes] = {}
+        self.settings: dict = {}
         self.files_pending: dict[str, bytes] = {}  # extra files to write on the next save
 
     @classmethod
@@ -98,6 +99,10 @@ class Project:
         return val if isinstance(val, str) else ""
 
     def _build_records(self) -> None:
+        try:
+            self.settings = json.loads(self._text("settings.txt") or "{}")
+        except ValueError:
+            self.settings = {}
         self.labels = parse_labels(self._text("labels.txt"))
         self.status = parse_status(self._text("status.txt"))
         self.infos = parse_keyed(self._text("infos.txt"))
@@ -267,6 +272,16 @@ class Project:
         }
         for c in self.characters:
             out[c.path()] = c.render()
+        # settings.txt: keep the original text unless the data really changed.
+        old_settings = self._text("settings.txt")
+        try:
+            unchanged = bool(old_settings) and json.loads(old_settings) == self.settings
+        except ValueError:
+            unchanged = False
+        if unchanged:
+            out["settings.txt"] = old_settings
+        elif self.settings or old_settings:
+            out["settings.txt"] = json.dumps(self.settings, indent=4, sort_keys=True)
         # XML files: only regenerate when the parsed data differs from what was read, so a
         # file written by another lxml/libxml2 version is never rewritten needlessly.
         for rel, data, render, parse in (("plots.xml", self.plots, render_plots, parse_plots),
@@ -349,8 +364,7 @@ class Project:
         folder.children.append(scene)
         proj.outline.children.append(folder)
         proj._write("MANUSKRIPT", "1")
-        proj._write("settings.txt", json.dumps({"viewMode": "fiction", "defaultTextType": "md",
-                                                "countSpaces": True}, indent=4, sort_keys=True))
+        proj.settings = {"viewMode": "fiction", "defaultTextType": "md", "countSpaces": True}
         proj.save()
         root.with_name(root.name + ".msk").write_text("1", encoding="utf8")
         return proj
