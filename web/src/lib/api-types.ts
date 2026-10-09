@@ -6,6 +6,10 @@ export interface AuthStatusOut {
 	totp_pending: boolean;
 }
 
+export interface Body_import_zipped_msk_api_projects_import_msk_post {
+	file: string;
+}
+
 export interface Body_upload_project_api_projects_upload_post {
 	file: string;
 }
@@ -385,6 +389,7 @@ export interface Routes {
 	"DELETE /api/projects/{name}": { body: never; response: TrashedOut };
 	"GET /api/projects/{name}/download": { body: never; response: unknown };
 	"POST /api/projects/upload": { body: never; response: ProjectName };
+	"POST /api/projects/import-msk": { body: never; response: ProjectName };
 	"GET /api/projects": { body: never; response: ProjectList };
 	"POST /api/projects": { body: NewProject; response: ProjectName };
 	"GET /api/projects/{name}/outline": { body: never; response: OutlineOut };
