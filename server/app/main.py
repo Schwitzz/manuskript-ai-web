@@ -7,7 +7,9 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.outline import router as outline_router
+from app.api.plots_world import router as plots_world_router
 from app.api.projects import router as projects_router
+from app.api.records import router as records_router
 from app.auth.router import router as auth_router
 from app.config import get_settings
 from app.db import init_db
@@ -30,6 +32,8 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(projects_router)
     app.include_router(outline_router)
+    app.include_router(records_router)
+    app.include_router(plots_world_router)
 
     static = get_settings().static_dir
     if static and static.is_dir():
