@@ -61,7 +61,7 @@ def update_settings(name: str, body: SettingsIn):
                 current = p.settings.get("revisions", {})
                 current.update({k: v for k, v in value.items() if v is not None})
                 p.settings["revisions"] = current
-            else:
-                p.settings[key] = value
+            elif key in p.settings or value != _view(p.settings)[key]:
+                p.settings[key] = value  # an echoed default must not add a key the file never had
         p.save()
         return _view(p.settings)
