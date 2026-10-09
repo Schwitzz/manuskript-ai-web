@@ -25,5 +25,5 @@ cp .env.example .env   # set MSK_SECRET_KEY
 docker compose up -d
 ```
 
-Status: Phases 0 (login, Docker, PWA), 1 (msklib) and 2 (server API) are done. Phase 3 (editor and app screens) is next. See PLAN.md and docs/install.md.
+Status: Phases 0 (login, Docker, PWA) and 1 (msklib) are done. Phase 2 (server API) is mostly done: see PLAN.md for the few items still open. Phase 3 (editor and app screens) is next. See docs/install.md.
 Note: port 8000 is used by another service on the dev rig, so use `MSK_PORT=8770` in `.env` there.
