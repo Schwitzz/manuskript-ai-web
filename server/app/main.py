@@ -11,6 +11,7 @@ from app.api.plots_world import router as plots_world_router
 from app.api.project_ops import router as project_ops_router
 from app.api.projects import router as projects_router
 from app.api.records import router as records_router
+from app.api.revisions import router as revisions_router
 from app.api.search import router as search_router
 from app.auth.router import router as auth_router
 from app.config import get_settings
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(records_router)
     app.include_router(plots_world_router)
     app.include_router(search_router)
+    app.include_router(revisions_router)
 
     static = get_settings().static_dir
     if static and static.is_dir():
