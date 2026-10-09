@@ -226,3 +226,29 @@ class MeOut(BaseModel):
 
 class SampleList(BaseModel):
     samples: list[str]
+
+
+class BacklinkOut(BaseModel):
+    kind: str
+    id: int
+    title: str
+    field: str
+    count: int
+
+
+class BacklinksOut(BaseModel):
+    target_title: str
+    backlinks: list[BacklinkOut]
+
+
+class BrokenRefOut(BaseModel):
+    source_kind: str
+    source_id: int
+    source_title: str
+    field: str
+    target_kind: str
+    target_id: int
+
+
+class BrokenRefsOut(BaseModel):
+    broken: list[BrokenRefOut]

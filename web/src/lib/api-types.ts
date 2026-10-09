@@ -6,12 +6,38 @@ export interface AuthStatusOut {
 	totp_pending: boolean;
 }
 
+export interface BacklinkOut {
+	kind: string;
+	id: number;
+	title: string;
+	field: string;
+	count: number;
+}
+
+export interface BacklinksOut {
+	target_title: string;
+	backlinks: BacklinkOut[];
+}
+
 export interface Body_import_zipped_msk_api_projects_import_msk_post {
 	file: string;
 }
 
 export interface Body_upload_project_api_projects_upload_post {
 	file: string;
+}
+
+export interface BrokenRefOut {
+	source_kind: string;
+	source_id: number;
+	source_title: string;
+	field: string;
+	target_kind: string;
+	target_id: number;
+}
+
+export interface BrokenRefsOut {
+	broken: BrokenRefOut[];
 }
 
 export interface CharacterIn {
@@ -425,6 +451,8 @@ export interface Routes {
 	"PATCH /api/projects/{name}/world/{item_id}": { body: WorldFields; response: WorldItemOut };
 	"DELETE /api/projects/{name}/world/{item_id}": { body: never; response: Ok };
 	"GET /api/projects/{name}/search": { body: never; response: SearchOut };
+	"GET /api/projects/{name}/references/broken": { body: never; response: BrokenRefsOut };
+	"GET /api/projects/{name}/references/{kind}/{item_id}": { body: never; response: BacklinksOut };
 	"GET /api/projects/{name}/documents/{item_id}/revisions": { body: never; response: RevisionsOut };
 	"GET /api/projects/{name}/documents/{item_id}/revisions/{timestamp}": { body: never; response: RevisionOut };
 	"POST /api/projects/{name}/documents/{item_id}/revisions/{timestamp}/restore": { body: Restore; response: RestoredOut };
