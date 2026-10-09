@@ -20,10 +20,12 @@ import os
 import re
 import shutil
 import tempfile
+import time
 from pathlib import Path
 
 from msklib.counts import char_count
 from msklib.model import Item
+from msklib.revisions import Revisions, read_settings
 from msklib.xmlrecords import Plot, WorldItem, parse_plots, parse_world, render_plots, render_world
 from msklib.records import (Character, Label, parse_keyed, parse_labels, parse_status,
                             render_infos, render_labels, render_status, render_summary)
@@ -70,6 +72,7 @@ class Project:
         self.plots: list[Plot] = []
         self.world: list[WorldItem] = []
         self._xml_loaded: dict[str, bytes] = {}
+        self.files_pending: dict[str, bytes] = {}  # extra files to write on the next save
 
     @classmethod
     def load(cls, root: Path) -> "Project":
@@ -151,6 +154,7 @@ class Project:
         """Write changed outline files, move renamed ones, trash removed ones.
         Returns the relative paths written."""
         self._update_char_counts()
+        self._record_revisions()
         rendered = self.render_outline()
         written: list[str] = []
         records = self._render_records()
@@ -171,6 +175,8 @@ class Project:
                 if old in self.files:
                     self.files[new] = self.files.pop(old)
 
+        records.update(self.files_pending)
+        self.files_pending = {}
         for rel, content in {**rendered, **records}.items():
             if rel not in self.files and content in ("", b"") and rel not in rendered:
                 continue  # never create an empty optional file
@@ -196,6 +202,28 @@ class Project:
                 self._xml_loaded[rel] = self.files[rel]
         self._prune_empty_dirs()
         return written
+
+    def _record_revisions(self) -> None:
+        """Like desktop: when a scene's text changes, keep the previous text as a revision.
+        revisions.xml is only touched if something changed or an item was removed."""
+        keep, smart, rules = read_settings(self._text("settings.txt"))
+        if not keep:
+            return
+        raw = self.files.get("revisions.xml")
+        revs = Revisions(raw if isinstance(raw, bytes) else None)
+        now = time.time()
+        for item in self.outline.walk():
+            if (not item.is_folder and item.loaded_text is not None
+                    and item.text != item.loaded_text):
+                revs.add(item.id, item.loaded_text, now, rules, smart,
+                         title=item.title, kind=item.type, path=item.file_path())
+        # Desktop rebuilds revisions.xml from the live outline, so revisions of removed items go.
+        live = {str(i.id) for i in self.outline.walk()} | {"0"}
+        for el in list(revs.root.iter("outlineItem")):
+            if el.get("ID") not in live:
+                revs.drop_item(int(el.get("ID", "0") or 0))
+        if revs.dirty:
+            self.files_pending["revisions.xml"] = revs.tobytes()
 
     def _count_spaces(self) -> bool:
         try:

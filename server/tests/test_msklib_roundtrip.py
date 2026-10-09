@@ -45,11 +45,12 @@ def test_edit_one_scene_changes_only_that_scene_and_its_ancestor_folders(proj_di
     written = p.save()
     after = snapshot(proj_dir)
     changed = sorted(k for k in after if before.get(k) != after[k])
-    # Like desktop, charCount is refreshed on the scene and on every folder above it.
+    # Like desktop: charCount is refreshed on the scene and every folder above it, and the
+    # previous text is kept as a revision.
     assert sorted(written) == changed == sorted([
         "outline/0-Jerusalem/2-Chapter_3/1-Peter_preaches.md",
         "outline/0-Jerusalem/2-Chapter_3/folder.txt",
-        "outline/0-Jerusalem/folder.txt"])
+        "outline/0-Jerusalem/folder.txt", "revisions.xml"])
     assert after["outline/0-Jerusalem/2-Chapter_3/1-Peter_preaches.md"].endswith(b"An added line.")
     assert Project.load(proj_dir).save() == []
 
