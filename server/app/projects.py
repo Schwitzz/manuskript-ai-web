@@ -14,6 +14,7 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
+from app import events
 from app.config import get_settings
 from msklib.model import Item
 from msklib.project import Project
@@ -66,7 +67,11 @@ def open_project(name: str):
     if not (path / "MANUSKRIPT").exists():
         raise HTTPException(404, "Project not found")
     with _lock_for(name):
+        before = events.signature(path) if events.has_subscribers() else None
         yield Project.load(path)
+        if before is not None and events.signature(path) != before:
+            events.note_signature(name, path)
+            events.publish({"type": "changed", "project": name, "source": "api"})
 
 
 def create_project(name: str, title: str, author: str = "") -> None:

@@ -1,11 +1,13 @@
 """FastAPI app: API routers plus the built web app as static files."""
 
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.events import router as events_router
 from app.api.outline import router as outline_router
 from app.api.plots_world import router as plots_world_router
 from app.api.project_ops import router as project_ops_router
@@ -14,6 +16,7 @@ from app.api.records import router as records_router
 from app.api.revisions import router as revisions_router
 from app.api.search import router as search_router
 from app.auth.router import router as auth_router
+from app import events
 from app.config import get_settings
 from app.db import init_db
 
@@ -21,7 +24,9 @@ from app.db import init_db
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
+    task = asyncio.create_task(events.watcher())
     yield
+    task.cancel()
 
 
 def create_app() -> FastAPI:
@@ -40,6 +45,7 @@ def create_app() -> FastAPI:
     app.include_router(plots_world_router)
     app.include_router(search_router)
     app.include_router(revisions_router)
+    app.include_router(events_router)
 
     static = get_settings().static_dir
     if static and static.is_dir():
