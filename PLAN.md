@@ -140,9 +140,9 @@ Goal: every project operation available over REST, safely.
 2. Outline: tree read; create, rename, move (drag and drop), delete, set label, status, compile flag, POV character, summary, goal.
 3. Documents: read and save scene text. Every document carries a `version`; a save with a stale version returns 409 and the browser shows a merge prompt, never overwrites.
 4. Characters, plots (with steps and links to characters/scenes), world tree, labels, statuses, book info and summaries, project settings.
-5. Locking and writing: one asyncio lock per project, atomic file writes (write temp, fsync, rename), a debounced write queue, and a `.lock` marker while a sync pass is running.
+5. Locking and writing: one lock per project, atomic file writes (write temp, fsync, rename), and a `.lock` marker while a sync pass is running (writes get 423, reads still work). DONE. **No server-side write queue, on purpose:** a save is only acknowledged once it is on disk, which is what makes the stale-save 409 trustworthy. Debouncing happens in the browser editor (Phase 3). Measured with `server/tools/bench_scale.py`: one save request on a 2000-scene, 10 MB project takes about 64 ms.
 6. Revisions: snapshot a scene on save at the same intervals as desktop Manuskript (settings.revisions rules).
-7. Search: full-text across scenes, notes, characters, with filters; SQLite FTS5 index rebuilt from files.
+7. Search: full-text across scenes, notes, characters, with filters. DONE. **No FTS5 index, on purpose:** the files are the source of truth and the desktop app and sync edit them behind our back, so an index could show stale results. Scanning the files per request measured about 90 ms on a 2000-scene, 10 MB project. Revisit only if a real project makes search slower than about half a second.
 8. Events: a `/api/events` SSE stream so open tabs refresh when something changes (second device, sync pass).
 9. OpenAPI schema generated and TypeScript client generated from it.
 10. Tests: API tests for each endpoint, concurrency test (two simultaneous saves), kill-during-write test (power-loss safety), and the msklib golden tests rerun through the API.
@@ -308,7 +308,7 @@ NOT retrieved, from memory: the OAuth client type and redirect URI in 13.1 item 
 1. **Export (server side, pandoc):** Markdown, plain text, HTML, DOCX, ODT, EPUB, and PDF (HTML to PDF with WeasyPrint, so no LaTeX install is needed). Choose which items to include (the compile flags), separators, title page, and a simple style choice. Preview in the browser before download; large exports run as a background job with progress.
 2. **Desktop compile parity:** the same compile flags, scene separators and the Manuskript "basic" outputs, tested by comparing against desktop output for the sample project.
 3. **Import:** Markdown or plain-text files and folders, OPML, DOCX/ODT/EPUB through pandoc, and zipped `.msk` projects. Split by headings into folders and scenes, with a dry-run preview.
-4. **Search:** project-wide full text (SQLite FTS5) across scenes, notes, characters, plots, world, with a results list that jumps to the match; command palette (Ctrl+K and a search icon on phone) for jumping to items and running actions.
+4. **Search:** project-wide full text (file scan, see Phase 2 item 7) across scenes, notes, characters, plots, world, with a results list that jumps to the match; command palette (Ctrl+K and a search icon on phone) for jumping to items and running actions.
 5. **Word-count goals:** per-scene and per-project goals, a daily goal with a progress ring, streak, and a small history chart stored in SQLite. Counts follow the same rules as desktop (count spaces setting).
 6. **Revisions:** list a scene's saved revisions, view a diff against the current text, restore with one tap (restoring itself creates a revision).
 7. **Frequency analyser and spell language:** word-frequency view; dictionary language per project; custom dictionary.
