@@ -6,6 +6,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
+	import Toast from '#lib/components/Toast.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -25,11 +26,13 @@
 	});
 
 	// Route guard: unauthenticated users only ever see /login.
+	// /register requires an authenticated session (it creates additional accounts),
+	// so it is intentionally excluded here and guards itself.
 	$effect(() => {
 		if (!ready) return;
-		const onLogin = page.url.pathname.startsWith('/login');
-		if (!auth.status?.authenticated && !onLogin) goto('/login');
-		else if (auth.status?.authenticated && onLogin) goto('/');
+		const onAuthPage = page.url.pathname.startsWith('/login');
+		if (!auth.status?.authenticated && !onAuthPage) goto('/login');
+		else if (auth.status?.authenticated && onAuthPage) goto('/');
 	});
 </script>
 
@@ -41,5 +44,6 @@
 </svelte:head>
 
 {#if ready}
+	<Toast />
 	{@render children()}
 {/if}

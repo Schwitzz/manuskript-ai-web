@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { PenLine, ListTree, LayoutGrid, Users, Menu } from '@lucide/svelte';
+	import { PenLine, ListTree, LayoutGrid, Users, Menu, Sparkles } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
+	import { ai } from '#lib/stores/ai.svelte.ts';
 
 	let { title, children }: { title: string; children: Snippet } = $props();
 
@@ -19,7 +20,14 @@
 		class="sticky top-0 z-10 flex h-14 items-center border-b px-4"
 		style="background: var(--surface); border-color: var(--border)"
 	>
-		<h1 class="text-lg font-semibold">{title}</h1>
+		<h1 class="flex-1 text-lg font-semibold">{title}</h1>
+		<button
+			class="rounded p-2"
+			onclick={() => { ai.panelOpen = !ai.panelOpen; if (!ai.initialized) ai.init(); }}
+			title="AI Chat"
+		>
+			<Sparkles size={20} style="color: {ai.panelOpen ? 'var(--accent)' : 'var(--muted)'}" />
+		</button>
 	</header>
 
 	<div class="flex-1 px-4 py-4">

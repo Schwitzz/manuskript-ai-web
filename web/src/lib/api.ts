@@ -10,7 +10,7 @@ export class ApiError extends Error {
 	}
 }
 
-function csrfToken(): string {
+export function csrfToken(): string {
 	const m = document.cookie.match(/(?:^|;\s*)msk_csrf=([^;]+)/);
 	return m ? decodeURIComponent(m[1]) : '';
 }
