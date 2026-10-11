@@ -10,6 +10,7 @@ import hashlib
 import re
 import shutil
 import threading
+import time
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from fastapi import HTTPException
 
 from app import events, synclock
 from app.config import get_settings
+from msklib.counts import word_count
 from msklib.model import Item
 from msklib.project import Project
 
@@ -123,14 +125,101 @@ def create_from_sample(name: str, sample: str) -> None:
         marker.write_text("1", encoding="utf8")
 
 
+# ---- Templates: user-built starting points, stored as project folders in data/templates ----
+
+def template_path(name: str) -> Path:
+    valid_name(name)
+    root = get_settings().templates_dir
+    path = (root / name).resolve()
+    if root.resolve() not in path.parents:
+        raise HTTPException(400, "Invalid template name")
+    return path
+
+
+def _template_lock(name: str) -> threading.Lock:
+    # "\x00" can never appear in a valid project name, so this cannot collide with one.
+    return _lock_for("\x00template:" + name)
+
+
+def list_templates() -> list[str]:
+    root = get_settings().templates_dir
+    if not root.is_dir():
+        return []
+    return sorted((d.name for d in root.iterdir()
+                   if d.is_dir() and not d.name.startswith(".") and (d / "MANUSKRIPT").exists()),
+                  key=str.lower)
+
+
+def create_template(template: str, from_project: str, keep_text: bool) -> None:
+    """Snapshot a project as a template. Revision history is never copied; with
+    `keep_text=False` every scene is emptied so only the structure remains."""
+    src = project_path(from_project)
+    dst = template_path(template)
+    if not (src / "MANUSKRIPT").exists():
+        raise HTTPException(404, "Project not found")
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    with _lock_for(from_project), _template_lock(template):
+        if dst.exists():
+            raise HTTPException(409, "A template with that name already exists")
+        tmp = dst.with_name(f".tmp-{time.time_ns()}")
+        try:
+            shutil.copytree(src, tmp, ignore=shutil.ignore_patterns(".*", "revisions.xml"))
+            if not keep_text:
+                proj = Project.load(tmp)
+                for item in proj.outline.walk():
+                    if not item.is_folder:
+                        item.text = ""
+                        item.loaded_text = None  # not an edit: no revision, counts reset
+                proj.save()
+            tmp.rename(dst)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
+def delete_template(template: str) -> str:
+    """Move a template to templates/.trash; nothing is hard deleted."""
+    src = template_path(template)
+    with _template_lock(template):
+        if not (src / "MANUSKRIPT").exists():
+            raise HTTPException(404, "Template not found")
+        trash = get_settings().templates_dir / ".trash"
+        trash.mkdir(exist_ok=True)
+        dest = trash / f"{template}-{time.strftime('%Y%m%d-%H%M%S')}"
+        shutil.move(str(src), str(dest))
+    return dest.name
+
+
+def create_from_template(name: str, template: str, title: str) -> None:
+    """Copy a template to a new, independent project called `name` titled `title`."""
+    src = template_path(template)
+    if not (src / "MANUSKRIPT").exists():
+        raise HTTPException(404, "Unknown template")
+    path = project_path(name)
+    marker = path.with_name(path.name + ".msk")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with _template_lock(template), _lock_for(name):
+        if path.exists() or marker.exists():
+            raise HTTPException(409, "A project with that name already exists")
+        try:
+            shutil.copytree(src, path, ignore=shutil.ignore_patterns(".*"))
+            proj = Project.load(path)
+            proj.infos["Title"] = title
+            proj.save()
+        except BaseException:
+            shutil.rmtree(path, ignore_errors=True)
+            raise
+        marker.write_text("1", encoding="utf8")
+
+
 def doc_version(item: Item) -> str:
     """Content hash: changes whenever the text changes, wherever the change came from."""
     return hashlib.sha256(item.text.encode("utf8")).hexdigest()[:16]
 
 
 def item_summary(item: Item) -> dict:
-    return {
-        "id": item.id, "title": item.title, "type": item.type,
-        "meta": dict(item.meta),
-        "children": [item_summary(c) for c in item.children],
-    }
+    """Outline node for the API. `words` is the scene's own count, or the sum for a folder;
+    computed bottom-up so each scene is counted once however deep the tree is."""
+    children = [item_summary(c) for c in item.children]
+    words = sum(c["words"] for c in children) if item.is_folder else word_count(item.text)
+    return {"id": item.id, "title": item.title, "type": item.type, "meta": dict(item.meta),
+            "words": words, "children": children}

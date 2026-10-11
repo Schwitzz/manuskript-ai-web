@@ -22,6 +22,10 @@ class Settings(BaseSettings):
         return self.data_dir / "projects"
 
     @property
+    def templates_dir(self) -> Path:
+        return self.data_dir / "templates"
+
+    @property
     def app_dir(self) -> Path:
         return self.data_dir / "app"
 

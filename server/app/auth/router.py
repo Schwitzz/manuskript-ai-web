@@ -13,7 +13,7 @@ from app.auth.deps import current_user, enforce_csrf
 from app.auth.netutil import client_ip, ip_allowed, request_is_https
 from app.config import get_settings
 from app.db import db
-from app.schemas import AuthStatusOut, LoginOut, MeOut, Ok, RecoveryCodesOut, TotpSetupOut
+from app.schemas import AuthStatusOut, LoginOut, MeOut, Ok, RecoveryCodesOut, TotpSetupOut, UsersList
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -29,6 +29,11 @@ class SetupBody(Credentials):
 
 class CodeBody(BaseModel):
     code: str = Field(min_length=1, max_length=32)
+
+
+class RegisterBody(BaseModel):
+    username: str = Field(min_length=3, max_length=64)
+    password: str = Field(min_length=10, max_length=256)
 
 
 def _user_count() -> int:
@@ -175,3 +180,47 @@ def totp_disable(body: CodeBody, user: dict = Depends(current_user)):
 @router.get("/me", response_model=MeOut)
 def me(user: dict = Depends(current_user)):
     return {"username": user["username"], "totp_enabled": bool(user["totp_enabled"])}
+
+
+@router.get("/users", response_model=UsersList)
+def list_users(user: dict = Depends(current_user)):
+    """List all registered users (admin-only)."""
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT id, username, totp_enabled, created_at FROM user ORDER BY id"
+        ).fetchall()
+    return {
+        "users": [
+            {
+                "id": row["id"],
+                "username": row["username"],
+                "totp_enabled": bool(row["totp_enabled"]),
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ],
+    }
+
+
+@router.post("/register", response_model=Ok)
+def register(body: RegisterBody, request: Request, user: dict = Depends(current_user)):
+    """Create a new user account. Requires an authenticated session.
+
+    The caller's own session is left untouched: registering a new user must not
+    log the admin out of their current account.
+    """
+    keys = _guard_login(request, body.username)
+    with db() as conn:
+        existing = conn.execute(
+            "SELECT id FROM user WHERE LOWER(username) = ?",
+            (body.username.lower(),),
+        ).fetchone()
+        if existing:
+            raise HTTPException(409, "Username already taken")
+        conn.execute(
+            "INSERT INTO user(username, password_hash) VALUES (?, ?)",
+            (body.username, sec.hash_password(body.password)),
+        )
+    for k in keys:
+        sec.clear_failures(k)
+    return {"ok": True}

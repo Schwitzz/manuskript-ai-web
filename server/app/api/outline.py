@@ -110,7 +110,16 @@ def move_item(name: str, item_id: int, body: MoveItem):
 def set_fields(name: str, item_id: int, body: Fields):
     with store.open_project(name) as p:
         item = _item(p, item_id)
-        for attr, value in body.model_dump(exclude_unset=True).items():
+        changes = body.model_dump(exclude_unset=True)
+        # Desktop stores label and status as 1-based positions in labels.txt / status.txt
+        # ("" or "0" = none). A name here would be read by desktop as "no label", so refuse it.
+        for attr, known in (("label", p.labels), ("status", p.status)):
+            value = changes.get(attr)
+            if value not in (None, ""):
+                if not value.isdigit() or int(value) > len(known):
+                    raise HTTPException(
+                        422, f"{attr} must be a number from 0 to {len(known)} (its position in the list)")
+        for attr, value in changes.items():
             key = FIELDS[attr]
             if value in (None, ""):
                 item.meta.pop(key, None)

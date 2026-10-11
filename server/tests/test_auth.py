@@ -86,6 +86,32 @@ def test_totp_flow(logged_in):
     assert again.status_code == 401
 
 
+def test_register_requires_auth(client):
+    # No session cookie at all: CSRF enforcement (which runs first) rejects with 403.
+    assert client.post("/api/auth/register", json={"username": "bob", "password": PW}).status_code == 403
+
+
+def test_register_creates_user_without_switching_session(logged_in):
+    h = csrf_headers(logged_in)
+    r = logged_in.post("/api/auth/register", json={"username": "bob", "password": PW}, headers=h)
+    assert r.status_code == 200
+    # The admin's own session must be untouched: still logged in as "ab".
+    assert logged_in.get("/api/auth/me").json()["username"] == "ab"
+    # The new user can log in with their own credentials.
+    logged_in.cookies.clear()
+    r = logged_in.post("/api/auth/login", json={"username": "bob", "password": PW})
+    assert r.status_code == 200
+    assert logged_in.get("/api/auth/me").json()["username"] == "bob"
+
+
+def test_register_duplicate_username_rejected(logged_in):
+    h = csrf_headers(logged_in)
+    logged_in.post("/api/auth/register", json={"username": "bob", "password": PW}, headers=h)
+    # case-insensitive duplicate check
+    r = logged_in.post("/api/auth/register", json={"username": "BOB", "password": PW}, headers=h)
+    assert r.status_code == 409
+
+
 def test_cidr_allowlist(client, monkeypatch):
     from app.config import get_settings
     monkeypatch.setenv("MSK_LOGIN_ALLOW_CIDRS", "10.0.0.0/8")

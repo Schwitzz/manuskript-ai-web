@@ -16,6 +16,7 @@ class NewProject(BaseModel):
     title: str = Field(default="", max_length=200)
     author: str = Field(default="", max_length=200)
     sample: str | None = Field(default=None, max_length=100)  # copy a bundled sample instead
+    template: str | None = Field(default=None, max_length=100)  # or copy a user template
 
 
 class SaveDocument(BaseModel):
@@ -30,8 +31,12 @@ def list_projects():
 
 @router.post("", status_code=201, response_model=ProjectName)
 def create_project(body: NewProject):
+    if body.sample and body.template:
+        raise HTTPException(400, "Choose either a sample or a template, not both")
     if body.sample:
         store.create_from_sample(body.name, body.sample)
+    elif body.template:
+        store.create_from_template(body.name, body.template, body.title or body.name)
     else:
         store.create_project(body.name, body.title or body.name, body.author)
     return {"name": body.name}

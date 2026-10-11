@@ -28,6 +28,7 @@ class OutlineItemOut(BaseModel):
     title: str
     type: str
     meta: dict[str, str]
+    words: int
     children: list[OutlineItemOut]
 
 
@@ -224,8 +225,23 @@ class MeOut(BaseModel):
     totp_enabled: bool
 
 
+class UserRef(BaseModel):
+    id: int
+    username: str
+    totp_enabled: bool
+    created_at: str
+
+
+class UsersList(BaseModel):
+    users: list[UserRef]
+
+
 class SampleList(BaseModel):
     samples: list[str]
+
+
+class TemplateList(BaseModel):
+    templates: list[str]
 
 
 class BacklinkOut(BaseModel):

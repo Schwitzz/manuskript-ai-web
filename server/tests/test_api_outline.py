@@ -128,3 +128,25 @@ def test_desktop_compatible_after_api_edits(logged_in, tmp_path):
     logged_in.post(BASE, headers=h, json={"title": "Added: colon"})
     logged_in.delete(f"{BASE}/{by_title(logged_in, 'Chapter 5')['id']}", headers=h)
     assert Project.load(tmp_path / "projects/acts").save() == []
+
+
+def test_label_and_status_must_be_list_positions(logged_in, tmp_path):
+    h = setup(logged_in, tmp_path)
+    url = f"{BASE}/{by_title(logged_in, 'Peter preaches')['id']}/fields"
+    # names, out-of-range and non-numeric values are refused: desktop would read them as "none"
+    for bad in ({"label": "Scene"}, {"status": "Final"}, {"label": "99"}, {"status": "-1"}):
+        assert logged_in.patch(url, headers=h, json=bad).status_code == 422, bad
+    ok = logged_in.patch(url, headers=h, json={"label": "4", "status": "0"})
+    assert ok.status_code == 200 and ok.json()["meta"]["label"] == "4"
+
+
+def test_outline_items_carry_word_counts(logged_in, tmp_path):
+    setup(logged_in, tmp_path)
+    data = logged_in.get(BASE).json()
+    # a scene's count matches the document endpoint; a folder is the sum of what is inside it
+    scene = by_title(logged_in, "Peter preaches")
+    doc = logged_in.get(f"/api/projects/acts/documents/{scene['id']}").json()
+    assert scene["words"] == doc["words"] > 0
+    chapter = by_title(logged_in, "Chapter 3")
+    assert chapter["words"] == sum(c["words"] for c in chapter["children"])
+    assert sum(i["words"] for i in data["items"]) == data["words"]
