@@ -1,8 +1,29 @@
 # manuskript-ai-web: build plan
 
 A self-hosted, single-user, phone-first web rewrite of the Manuskript AI fork.
-Status: PLAN ONLY. No application code exists yet. Review, then start Phase 0.
+**Status (11 Oct 2026):** Phases 0-3 complete. Phase 4 (AI) now works end to end: a live chat against the llama.cpp server streams, uses the open scene as context and saves (see its section). Phase 5 done. Phase 6: outline and corkboard done; storyline and drag-and-drop not started. Phase 7 (Google Drive) is **dropped**; files will be synced another way (see Phase 7). Next: Phase 8 UI (search, revisions, export/import), then Phase 9 hardening.
 
+**How this was last verified:** server 306 pytest, web 125 vitest, 18 Playwright (+1 live AI test, run on demand) (phone 390x844 and desktop 1440x900), svelte-check 0 errors. Run them with the commands in README.md.
+
+## Progress Summary
+
+| Phase | Status | Notes |
+|---|---|---|
+| 0: skeleton, Docker, login | ✅ Done | Auth, TOTP, rate limiting, PWA, login page, route guards. Extra accounts can be created from More (admin-only), which no longer logs the admin out. |
+| 1: msklib (project file library) | ✅ Done | Byte-identical round trips, zipped `.msk` read, 30+ pytest tests |
+| 2: server API | ✅ Done | Projects, outline, records, plots/world, search, revisions, references, settings, events (SSE), lock/423. Project templates added (see Phase 6b). Every route is now checked for login by one test that walks the whole route table. |
+| 3: editor, icon toolbar, design system | ✅ Done | CodeMirror editor with line wrapping, formatting toolbar, autosave, version conflicts, word count, session goal, typewriter and line focus, 32 themes. An empty scene now gets an editor (it used to show none). |
+| 4: AI assistant | ✅ Done (local model) | Repaired and run live against llama.cpp on 11 Oct 2026. Anthropic, Gemini and OpenAI have parser/payload tests but have not been run against real accounts. See the Phase 4 section. |
+| 5: characters, plots, world | ✅ Done | Full CRUD, search, inspector, general+summary, labels. Undo after delete now really re-creates the item on the server. Remaining: bulk actions, virtualised lists (Phase 6). |
+| 6: corkboard, outline, storyline | 🔄 Partial | Outline and Cards (corkboard) done and e2e-tested. Not started: touch drag and drop, outline table, folder views, storyline, bulk actions, virtualised lists. |
+| 6b: project templates | ✅ Done | Save a project's structure as a template, start new projects from it. Not in the original plan. |
+| 7: Google Drive sync | ❌ Dropped | Decision 11 Oct 2026: not building Google integration. Project files will be synced another way (rsync, Syncthing or a mounted folder; see Phase 7). |
+| 8: export, import, search, goals, revisions | ⬜ Pending | **Server side is only partly done.** Search, revisions, `.msk` import and zip upload/download exist as API. Export (pandoc/WeasyPrint), compile and Markdown/OPML import do NOT exist yet (an earlier note here said they did). No UI for any of it. |
+| 9: hardening, backups, install guide | ⬜ Pending | Partly done early: see "Security fixes so far" in Phase 9. |
+| 10: Dropbox | ❌ Dropped | Same decision as Phase 7. |
+| 11: offline writing | ⬜ Pending | Deferred |
+
+---
 ## 1. Decisions (locked)
 
 | Topic | Decision |
@@ -10,8 +31,8 @@ Status: PLAN ONLY. No application code exists yet. Review, then start Phase 0.
 | Repo | /home/ab/workspaces/manuskript-ai-web (new, GPL-3.0, reuses desktop-fork code) |
 | Host | Proxmox VM (Debian 12 + Docker), 4 cores / 16 GB. Develop and test on the Ubuntu rig |
 | Access | Home VPN + own reverse proxy + own domain. App speaks HTTP inside the LAN; the proxy does HTTPS |
-| Users | One user, password login, optional TOTP two-factor |
-| Cloud | Google Drive first, Dropbox later (Phase 10) |
+| Users | Password login with optional TOTP two-factor. The first account is created on first visit; the owner can add more from More | 
+| File sync | No cloud integration (decided 11 Oct 2026). Project folders are synced by an outside tool; see Phase 7 |
 | File format | MUST stay compatible with desktop Manuskript (same project folder, byte-identical round trip) |
 | Offline writing | Deferred (Phase 11), after the web app is fully functional |
 | Phone | Critical. Every screen is designed phone-first, then scaled up |
@@ -23,12 +44,12 @@ Status: PLAN ONLY. No application code exists yet. Review, then start Phase 0.
 |---|---|---|
 | Server | Python 3.12, FastAPI, uvicorn | Reuses the existing Python AI code; native SSE streaming |
 | Project storage | Manuskript folder format on disk | Same files desktop Manuskript opens |
-| App database | SQLite (WAL) | Users, sessions, settings, AI chat index, sync state |
+| App database | SQLite (WAL) | Users and login attempts (sessions are signed cookies, not stored). (AI chats and provider settings live in `data/ai_chats/` and JSON files in `data/`, see Phase 4.) |
 | Browser app | SvelteKit + TypeScript, built as a static PWA | Fast on phones, installs to the home screen |
 | Editor | CodeMirror 6 + live Markdown styling | Keeps text byte-exact (tabs, special spaces); rich-text editors rewrite Markdown |
 | Icons | Lucide | Clean, consistent, icon-led toolbar |
 | Touch drag and drop | SortableJS | Outline and corkboard reordering by touch |
-| Cloud sync | rclone driven by the server | One tool for Google Drive now and Dropbox later |
+| File sync | Outside the app (Syncthing, rsync or a mounted folder) | The server edits plain folders and never caches them, so any file-level sync works; the `.lock` marker keeps a pass from racing a save |
 | Export | pandoc + WeasyPrint in the container | DOCX, EPUB, ODT, HTML, PDF |
 | Deployment | Docker Compose, one image + a data volume | `docker compose up -d` |
 
@@ -56,9 +77,8 @@ manuskript-ai-web/
       main.py            FastAPI app, routers, static files
       config.py          env settings (pydantic-settings)
       auth/              login, sessions, TOTP, rate limiting
-      api/               projects, outline, documents, characters, plots, world, labels, settings, ai, sync, export
+      api/               projects, outline, documents, characters, plots, world, labels, settings, templates, ai, export (export not built yet)
       ai/                providers.py context.py chats.py prompts.py
-      sync/              rclone wrapper, conflict handling, snapshots
       export/            pandoc + weasyprint
       db.py              SQLite schema + migrations
     msklib/              Qt-free Manuskript project reader/writer (the core)
@@ -71,7 +91,7 @@ manuskript-ai-web/
       lib/editor/        CodeMirror setup + toolbar
     static/              manifest.webmanifest, icons, service worker
   deploy/                Caddyfile.example nginx.conf.example proxmox-vm.md backup.sh
-  docs/                  install.md google-drive.md reverse-proxy.md phone.md
+  docs/                  install.md  archive/google-drive-research.md  (to write: syncing.md reverse-proxy.md phone.md backup-restore.md)
 ```
 
 ## 5. Cross-cutting rules (apply to every phase)
@@ -93,7 +113,7 @@ Goal: log in from your phone and see an empty app shell, served by Docker.
 
 1. Create `server/` with FastAPI, `GET /api/health`, settings from environment.
 2. Create `web/` with SvelteKit (static adapter), a phone-first shell: top bar, bottom navigation (Write, Outline, Cards, Characters, More), theme variables.
-3. Dockerfile (multi-stage): build web, then Python image serving API + static files. Installs pandoc, rclone, WeasyPrint libraries.
+3. Dockerfile (multi-stage): build web, then Python image serving API + static files. Installs pandoc, rclone and the WeasyPrint libraries. (`rclone` is no longer used by anything since Google sync was dropped; it is left in the image in case you use it for your own sync scripts, and can be removed to shrink the image. `pandoc` is installed for the unbuilt export in Phase 8.)
 4. docker-compose.yml: one service, volumes `/data/projects`, `/data/app`, port 8000. `.env.example` lists every variable.
 5. Auth: first-run "create your account" page (only works while no user exists). Argon2id password hash, signed session cookie (HttpOnly, Secure, SameSite=Lax), logout, CSRF token for state-changing calls.
 6. Brute-force protection: per-IP and per-account rate limit, increasing delay after failures.
@@ -182,156 +202,183 @@ Goal: write a chapter comfortably on a phone and a desktop.
 
 Done when: you can write and format a chapter on your phone and desktop, and desktop Manuskript opens the result unchanged.
 
+**Remaining Phase 3 items (post-core):**
+- [x] Spell check (browser built-in — custom dictionary server-side)
+- [x] Typewriter mode, line focus mode
+- [ ] Spell check custom dictionary (server-side word list)
+- [ ] Scene tabs (multiple open scenes)
+- [ ] Split view on wide screens
+- [ ] Paragraph style menu (acts on selected paragraphs)
+- [ ] Comment button
+- [ ] Full desktop keyboard shortcuts (Ctrl+B/I/K)
+
+---
+
 ## 10. Phase 4: AI assistant (3-5 days)
 
 Goal: parity with the desktop AI dock, plus streaming over the web.
 
-1. Server: copy `ai/providers.py` unchanged (fixed cloud URLs, payload builders, stream parsers, model lists). Add `POST /api/ai/chat` returning SSE; client disconnect cancels the upstream request.
-2. Provider settings page: provider, per-provider API key (write-only, encrypted), per-provider model drop-down filled from `/models`, cached; llama.cpp endpoint, context size, temperature, thinking (Off/low/med/high/xhigh) shown for llama.cpp only.
-3. Roles: Co-author, Editor, Publisher, Reader with editable, resettable prompts.
-4. Context builder: selection, then current scene, summary, POV character, book summary; per-source toggles; trimmed to the context window.
-5. Chat UI: sheet on phone, right panel on desktop; provider/model/role pickers always visible and truly driving the request; "Reader says:" style labels stored per message; Enter sends (Shift+Enter newline, on desktop only; the phone keyboard uses a Send button).
-6. Status line: thinking timer, prompt/output tokens (provider-reported usage with an estimate fallback), tokens per second, Cancel.
-7. Chat history: stored server-side per project, auto-saved, Recent Chats list with open, New, Delete.
-8. Extras on top of the desktop version: "Insert reply at cursor", "Replace selection", and a "Ask AI about selection" action in the editor selection menu.
-9. Safety: a failed or cancelled prompt returns to the input box and is not added to history (the desktop bug fix).
-10. Tests: provider payload and stream parser unit tests (reuse the desktop ones), a fake SSE server for end-to-end, and a live smoke test against your llama server.
+**Status (11 Oct 2026): done for a local llama.cpp model; cloud providers untested live.** This phase was first marked "complete" when it was not (most UI calls failed). It was repaired, then run against a real llama.cpp server (`Qwen3.5-9B-UD-Q4_K_XL`), which found a second round of bugs that only a real model exposes. All of it is below.
 
-Done when: all four providers stream into the chat, model switching mid-chat works, and history persists.
+| Problem found | Fix |
+|---|---|
+| **No login on any AI route.** Anyone who could reach the server could read provider settings, list chats, and call `/api/ai/chat` (which spends cloud credits). | The whole router now requires a login. A test walks every route in the app and fails if one is open (`test_all_routes_require_login.py`). |
+| `GET /chats`, `POST /chats/new`, every chat route: crashed (`_get_chat_store` was never defined). | Defined. Round trip tested. |
+| `GET /providers` crashed (`provider` missing from the saved record). | Fixed; settings are returned as `{settings: [...]}`, which is what the UI reads. |
+| API keys were meant to be write-only but the settings form could wipe a saved key by saving a blank one. | Blank key now means "keep the saved key". The response says `has_key: true` instead of returning the key; tested that a key never appears in a response. |
+| UI called routes that do not exist: `/providers/{p}/models`, `PUT /agents` (server had `PATCH` taking a list), and `POST /chat` to create a chat. | UI now calls `/models?provider=`, `PUT /agents` (one prompt), and `/chats/new`. Models are cached per provider and endpoint (one provider's list was being served for all). |
+| Agent prompt edits were saved but never used when chatting. | Saved prompt is used; tested. |
+| The chat request did not send a CSRF token, and the store used a hardcoded project `book-of-acts`. | Sends the token; follows the selected project. |
+| **The context builder never worked.** It called methods that do not exist (`outline.get_current_scene`, `p.info`, `characters.get_character`), and a blanket `except: pass` hid it, so the model was always sent **no project context**. A probe confirmed the context string was empty. | Rewritten as `server/app/ai/context.py` over the real msklib model (7 tests). The UI now sends the open scene's id, so the model sees the scene text, its summary and notes, its POV character and the book info, trimmed to the token budget (a long scene keeps its end). Failures are logged, not swallowed. |
+
+**Found only by running a real model (live run, 11 Oct 2026):**
+
+| Problem | Fix |
+|---|---|
+| A local model could never chat: the code demanded an API key for every provider, and llama.cpp has none. | Only cloud providers need a key. |
+| A thinking model (Qwen) spent all 4,096 tokens reasoning and sent no answer. "Thinking: Off" sent `reasoning_effort`, which llama.cpp ignores. | Off now sends `chat_template_kwargs: {enable_thinking: false}`, the flag the model honours. First reply went from endless thinking to about 2 s. If a model still only thinks, the user gets an explicit error instead of an empty reply. |
+| The reasoning text was thrown away (parser kept a yes/no flag). | `StreamEvent.thinking` carries the text; streamed apart from the answer. |
+| **Replies were never saved and no final event was sent.** A misplaced `return` made the save and the `done` event unreachable. | `_stream_chat` rewritten with one event contract (documented in its docstring) and a clear error for each failure (bad model, unreachable server, upstream 4xx, empty reply, timeout). |
+| `GET /models` failed every time (missing import), so the model dropdown could never load. | Fixed. |
+| **`GET /models` fetched any URL the caller passed** (SSRF). | Address and key now come from saved settings only; a request-supplied `endpoint` is ignored (tested). |
+| The first message of a chat could be saved twice. | De-duplicated (tested). |
+
+**What was verified live:** the reply streams (about 33 chunks for a one-sentence answer); the open scene reaches the model (a made-up password planted in a scene summary was quoted back when the summary source was on, and not when it was off or no scene was open); Cancel stops the stream and saves nothing; a nonexistent model, an unreachable server and a missing address each give a readable error; the real chat panel in a browser gets the planted fact and the turn is saved (`web/e2e/ai-live.spec.ts`, runs only when `MSK_LLAMA_URL` is set). The regression tests use a fake model server whose message shapes were copied from the live run, and three of the fixes were reverted one at a time to confirm the matching tests fail.
+
+Completed:
+
+1. ✅ **Providers** (`server/app/ai/__init__.py`): URL builders, headers, payloads and SSE stream parsers for llama.cpp, OpenAI, Anthropic and Gemini; model-list parsers; `estimateTokens`. No Qt.
+2. ✅ **Chat history** (`server/app/ai/history.py`): SQLite `ChatStore` in `data/ai_chats/`, chats tagged by project.
+3. ✅ **Routes** (`server/app/ai/routes.py`): `GET/POST /providers`, `GET /models`, `GET/PUT /agents`, `POST /chats/new`, `GET /chats`, `GET/PUT/DELETE /chats/{id}`, `POST /chat` (SSE streaming). Login required on all.
+4. ✅ **Context builder** (`server/app/ai/context.py`): per-source toggles (selection, scene, summary, POV, book).
+5. ✅ **Agent prompts**: four built-ins (Co-author, Editor, Publisher, Reader), editable, saved in `data/ai_agents.json`.
+6. ✅ **UI**: AI settings page, chat panel, chat history (list, rename, delete), status line, editor extras.
+
+Still open (none of these block using it with a local model):
+
+7. ⬜ **Cloud providers**: Anthropic, Gemini and OpenAI have parser and payload tests only. Run one chat against each you plan to use. Also untested: a thinking model with Thinking switched on in the browser (it works over the API but took 140 s to answer "2+2" on this model), and Cancel from the browser button (tested at the connection level only).
+8. ⬜ **Selection as context**: the "selection" toggle is sent but the server only uses the scene, summary, POV and book sources. Today the selected text reaches the model only because "Ask AI about selection" puts it in the message.
+9. ⬜ **Keys are stored as plain text** in `data/ai_providers.json` (the code comment says so). Acceptable for a single-owner box behind a login, but note it in the install guide, and consider encrypting with a key derived from `MSK_SECRET_KEY`.
+10. ⬜ **Spend limits** (Phase 9 item 2).
+
+Done when: a chat streams from your llama.cpp server with the open scene as context, the model can be switched mid-chat, history persists, and Cancel stops the upstream request. **Met for the local model.**
 
 ## 11. Phase 5: characters, plots, world, summary, general (about 1 week)
 
 Goal: every non-editor data screen, phone friendly, writing the same files as desktop.
 
-1. **Characters:** list with avatar colour/initials, search, importance; detail screen with the same fields and groups as desktop (name, motivation, goal, conflict, epiphany, summaries, notes, infos, importance, colour). Characters referenced by scenes (POV) are linked both ways.
-2. **Plots:** plot list with importance; steps per plot with summaries; link characters and scenes; reorder steps by touch; a "resolution steps" section as in the file format.
-3. **World:** OPML tree editor (add, nest, rename, move, delete) with a detail form (description, passion, conflict) and a search box.
-4. **General and Summary screens:** book info (title, series, volume, genre, author, email, licence), the snowflake summary fields (situation, sentence, paragraph, page, full), word goal and progress.
-5. **Labels and statuses:** manage names and colours; colour picker that works by touch.
-6. **Inspector panel** next to the editor: metadata for the open scene (summary, POV, label, status, goal, notes) as a sheet on phone.
-7. **Validation and empty states:** friendly empty screens, undo toast after delete (restores from `.trash/`).
-8. Tests: each form writes the right file; round trip with desktop Manuskript headless; Playwright phone tests.
+1. ✅ **Characters:** list with avatar colour/initials, search, importance; detail form with the desktop fields (name, motivation, goal, conflict, epiphany, summaries, notes, infos, importance, colour).
+2. ✅ **Plots:** list with importance; resolution steps with summaries; linked characters.
+3. ✅ **World:** OPML tree editor (add, nest, edit, delete) with a detail form and search.
+4. ✅ **General and Summary screens:** book info and the snowflake summary fields.
+5. ✅ **Labels and statuses:** manage names and colours.
+6. ✅ **Inspector panel** in the editor: label, status, summary, goal, POV (now a character picker), notes.
+7. ✅ **Empty states and undo after delete.** Undo used to put a fake, mostly-empty record back in the *list* while the server still had it deleted, so it vanished on reload. It now re-creates the item on the server (it gets a new id; a world item's children are re-created too). Tested for characters in Playwright; plots and world use the same pattern but have no UI test yet.
+8. ⬜ **Tests**: the character create/undo flow has a Playwright test; plots, world, labels and the settings screens have none. The desktop cross-check tests (msklib output opens in desktop Manuskript) pass.
 
-Done when: you can build characters and a plot on your phone and see the same data in desktop Manuskript.
+Known rough edges: the form-based screens each carry their own copy of the same list/form code; a shared component would cut about a third of the code and the bugs found here (missing `$state`, missing project name) came from that duplication.
+
+Done when: you can build characters and a plot on your phone and see the same data in desktop Manuskript. **Mostly met; needs a manual check of plots and world on a phone.**
 
 ## 12. Phase 6: corkboard, outline table, storyline (1-1.5 weeks)
 
 Goal: the visual views, usable by touch.
 
-1. **Corkboard:** cards from the current folder; title, summary, label colour stripe, status chip, word count; themed (dark cards in dark schemes, with a paper-card option); card size slider; background colour setting.
-2. **Touch drag and drop** with SortableJS: long-press to lift, auto-scroll at screen edges, drop between cards or into a folder; works with mouse and touch.
-3. **Outline table:** sortable columns (title, label, status, POV, words, goal, compile), column picker, inline editing; on phone it collapses to stacked rows with the key fields.
-4. **Folder views** (text, cork, outline) switchable per folder, remembered in project settings like desktop.
-5. **Storyline:** plots as lanes against the scene sequence with character and plot-step markers; pan and pinch-zoom; tap to open a scene.
-6. **Bulk actions:** select several items (long-press) to set label, status, compile flag, or move.
-7. Performance: virtualised lists so a 2,000-scene project stays smooth on a mid-range phone.
-8. Tests: reorder persists to files and renames them like desktop; visual snapshots in all themes; touch emulation in Playwright.
+**Project selection (done, cuts across every screen).** The app used to hardcode a project called `book-of-acts` in six screens, so most of it only worked for one sample project. The selected project (chosen in More) is now used by Write, Outline, Cards, Characters, Plots, World, Labels, Settings and AI chat; each shows a "choose a project" prompt instead of calling the server when none is selected.
 
-Done when: you can reorganise chapters by touch and desktop Manuskript shows the new order.
+**Label and status format (fixed).** Desktop Manuskript stores an item's label and status as a 1-based position in `labels.txt` / `status.txt` (`""` or `0` = none). The web UI was writing the *name*, which desktop reads as "no label". The UI now writes positions and the server refuses names or out-of-range numbers (422). Verified end to end: pick a label in the outline, the API and the file hold the position, and it survives a reload.
 
-## 13. Phase 7: Google Drive two-way sync (4-6 days)
+1. ✅ **Outline** (`/outline`): tree with expand/collapse, inline rename (Enter and blur no longer double-save), delete with a trash confirmation that names the folder contents, label buttons and status select with the real colours, summary and notes, "Open in editor". Keyboard-operable.
+2. ✅ **Corkboard** (`/cards`): cards for the current folder with title, summary, label colour stripe, status chip and word count (new `words` field on every outline item); breadcrumb into folders; add a scene; move a card earlier/later or out of its folder; the new order is written to the project files. Reordering uses buttons, not dragging.
+3. ⬜ **Touch drag and drop** (SortableJS is not installed): long-press to lift, auto-scroll, drop between cards or into a folder.
+4. ⬜ **Outline table**: sortable columns, column picker, inline editing; stacked rows on a phone.
+5. ⬜ **Folder views** (text, cork, outline) per folder, saved in project settings like desktop.
+6. ⬜ **Storyline**: plots as lanes against the scene sequence.
+7. ⬜ **Bulk actions**: select several items to set label, status, compile flag, or move.
+8. ⬜ **Performance**: virtualised lists for a 2,000-scene project. The outline page re-fetches the whole tree after each delete or move; fine for hundreds of scenes, unmeasured beyond that.
+9. ⬜ **Cards, card size slider, paper-card option, background colour** from the original corkboard item.
+10. ⬜ Visual snapshots in all themes; touch emulation in Playwright.
 
-Goal: each project mirrors to a Drive folder, both ways, without ever silently losing text.
+Done when: you can reorganise chapters by touch and desktop Manuskript shows the new order. **Not yet met:** order can be changed by buttons, not by dragging.
 
-### 13.1 One-time Google setup (documented in docs/google-drive.md)
-1. Create a Google Cloud project and enable the Drive API.
-2. OAuth consent screen: user type External. **Publishing status must be "In production".** Confirmed in several sources: an External app in Testing gets refresh tokens that expire after 7 days (dev.to write-up quoting Google's OAuth docs; developers.google.com/health/setup; a Google Ads API forum advisor at groups.google.com/g/adwords-api/c/Z_kihrf6VCE). Re-authenticating in Testing only buys another 7 days (dev.to).
-3. Once published ("In Production"), refresh tokens generally do not expire unless revoked or unused for a prolonged period, typically six months (developers.google.com/health/setup). Other expiry causes listed by third parties quoting Google's docs: user revocation, and a limit of 100 live refresh tokens per Google Account per OAuth client ID, after which the oldest is invalidated without warning (unified.to). So: sync at least occasionally, and never loop on re-authentication. My own precaution, NOT from a source: after publishing, disconnect and reconnect Drive once so the app holds a token issued under the production status.
-4. Publishing can have prerequisites. One developer's write-up (dev.to, not an official source) says the Publish button was greyed out until branding fields were filled in: an application homepage URL and a privacy policy URL are named, and the excerpt I saw cuts off before the rest. A 2023 blog (newscrewdriver.com) reports that clicking Publish for an app with sensitive scopes asked for verification: privacy policy link, a demo video, a written justification and all domains verified in Search Console. Plan on needing a domain you control and a public privacy page. Not confirmed for your account or for the `drive` scope.
-5. Scope choice. Confirmed on developers.google.com/drive/api/guides/api-specific-auth (page last updated 2026-09-03): `https://www.googleapis.com/auth/drive` ("View and manage all your Drive files") is listed under RESTRICTED scopes; `drive.file` is listed as non-sensitive and grants per-file access to files the app creates, or that the user opens or shares with it through the Google Picker API or the app's file picker; the page recommends migrating to non-sensitive scopes where possible. So full `drive` is the only scope that would let the server see files desktop Manuskript writes through another sync client, and it is the one Google restricts.
-6. Verification. Confirmed: Google's help page "When is verification not needed" (support.google.com/cloud/answer/13464323, fetched) says a personal-use app (fewer than 100 users) can continue without going through verification, users click through the "unverified app" warning, and the "production" tier project should have the published status "In Production"; apps in testing mode are also not subject to verification but keep the unverified screen and the 100-user cap. The Drive scopes page (fetched) adds: restricted-scope data stored on servers requires a security assessment, and only specific app types may use restricted Drive scopes (backup and sync, productivity and education, reporting and security). A personal single-user sync app plausibly fits "backup and sync", but that is my reading, not Google's statement. The restricted-scope verification page (not re-fetched in this step) says assessments recur at least every 12 months, and Google's FAQ (support.google.com/cloud/answer/13463817) puts verification at about 6 weeks. Not confirmed: whether the console lets you publish a personal project with `drive` without forcing verification. Fallback if it forces it: use `drive.file` plus the Google Picker (you pick the project folders once; the app sees only those items), and keep desktop Manuskript syncing through the web app's export or its own rclone job rather than through Drive's files directly.
-7. OAuth client type: Web application, redirect URI `https://<your-domain>/api/sync/google/callback` (only your browser has to reach it, so the VPN is fine). NOT checked in this research; from memory.
+## 12b. Phase 6b: project templates (added 11 Oct 2026, not in the original plan)
 
-### 13.2 Design
-- The server runs `rclone bisync` between `/data/projects/<Project>` and `Drive:Manuskript/<Project>`. rclone remote and token are created through the app's own OAuth flow; the config file is 0600 and its secrets are encrypted (confirm rclone's config-password support in the first spike).
-- Per-project on/off toggle and a Drive folder picker (list folders through the Drive API).
-- Triggers: 30 seconds after the last save, every few minutes, on app start, and a "Sync now" button. One pass at a time per project (rclone's lock file plus our own lock).
-- Exclusions: `.trash/`, `.lock`, `*.tmp`, sync state, and Google Docs (`--drive-skip-gdocs`).
-- All writes by the server are atomic (temp file then rename) so a pass never sees half a file.
+Save a project's structure as a template and start new projects from it.
 
-### 13.3 Safety rules (non-negotiable)
-1. **Explicit flags only.** Read from the rclone.org/bisync page on 8 Oct 2026: `--max-delete PERCENT` (safety check on the maximum percentage of deleted files; the run aborts if exceeded; default 50%), `--force` (bypasses the max-delete check), `--check-access` with `--check-filename` (default RCLONE_TEST), `--check-sync` (true|false|only), `--compare` (default size,modtime), `--conflict-resolve` (default none: keep and rename both files), `--conflict-loser` (default num: append a number to the conflict suffix), `--conflict-suffix`, `--resilient` (retry after less-serious errors instead of requiring --resync), `--recover` (recover from interruptions without --resync), `--max-lock` (expire old lock files; default never; minimum 2m), `--backup-dir1` and `--backup-dir2`, `--resync` / `--resync-mode`, `--ignore-listing-checksum`. The page's own example also uses `--drive-skip-gdocs`. Flag spellings change between releases, so the first step of the phase is still a spike that runs `rclone bisync --help` on the pinned version.
-2. **Conflicts never overwrite.** With the documented defaults (`--conflict-resolve none`, `--conflict-loser num`) nothing is auto-resolved and the conflicting files are renamed with a numeric suffix. Confirm in the spike, then list them in the app with Compare, Keep mine, Keep theirs.
-3. **Delete limit.** Use `--max-delete` with a LOW percentage. The docs say it is a percentage with a default of 50%, and the run aborts when it is exceeded; the safety-measures section says this protects against a failed listing being read as all files deleted. `--force` bypasses the check, so the app never passes `--force` by itself. A 50% default is too loose for a book project, so choose a small value in the spike (small projects with few files may need an absolute-count guard of our own as well). Desktop Manuskript can delete and rewrite a whole project folder on save, and bisync propagates deletions both ways, so this matters.
-4. **Backup dirs.** Every pass keeps overwritten and deleted files in a dated backup folder outside the synced tree on both sides (`--backup-dir1/2`), pruned after a retention period.
-5. **Access check.** `RCLONE_TEST` marker files so a missing or empty mount can never look like a mass delete.
-6. **First connect is a guided, previewed step.** `--resync` makes one side win. The app shows a dry run and asks: Drive wins, this server wins, or merge keeping both. Never automatic.
-7. **Resync repair never runs by itself.** If bisync reports it needs a resync, the app shows the same guided choice.
+1. ✅ **Server** (`server/app/api/templates.py`, `projects.py`): templates are plain project folders in `data/templates/`. `GET/POST /api/templates`, `DELETE /api/templates/{name}` (moves to `templates/.trash`), and `POST /api/projects` accepts `template`. Revision history is never copied; by default scene text is emptied so only the structure remains (`keep_text` keeps it). A new project from a template is an independent copy with its own title. 8 tests: structure-only, keep text, independence, name guards, duplicates, failed attempts leaving nothing behind, trash.
+2. ✅ **UI** (More): a bookmark button on each project saves it as a template; the Create form has a template dropdown (and picking a sample clears it); a templates list with delete.
+3. ⬜ **Not done:** a template made from a project with a character, plot or world item copies them in full; there is no separate editor for "placeholder" characters. Scene-level templates (a reusable "chapter" snippet) are not built; the request that started this was cut off, so project templates were built.
 
-### 13.4 After each pass
-- Diff the changed files, reload them through msklib, bump document versions, emit an SSE event.
-- A document with unsaved edits in an open tab that also changed remotely shows the version-conflict prompt from Phase 3.
-- Status panel: last sync time, files changed, conflicts, errors, and a log viewer.
+## 13. Phase 7: syncing project files (replaces the Google Drive plan)
 
-### 13.5 Failure handling
-- `invalid_grant` or revoked access: banner "Reconnect Google Drive" with a one-click re-auth; writing is never blocked.
-- Network down: exponential backoff, a clear offline badge, no data loss.
-- Rate limiting: back off and retry, and use our own OAuth client ID rather than a shared one.
-- Refresh-token hygiene: keep one token per client ID in use; Google reportedly invalidates the oldest of 100 per account and client ID (unified.to quoting Google's docs), so the app never re-authenticates in a loop.
+**Decision, 11 Oct 2026:** no Google integration. Files are synced another way, outside the app. The Google Drive design, its OAuth findings and its rclone safety rules are archived in `docs/archive/google-drive-research.md` (nothing in the app depends on them).
 
-### 13.6 Your Ubuntu desktop
-- Google does not ship an official Drive desktop client for Linux (from my own knowledge, not checked in this research), so desktop Manuskript needs its own sync. Provide docs/desktop-sync.md with an `rclone bisync` systemd timer using the same safety flags, or mount Drive through GNOME Online Accounts.
-- Rule of thumb: let one device be the editor at a time; the safety rules above cover accidents.
+Why this is cheap: the server edits the Manuskript project folders under `data/projects/` directly and never caches them (PLAN section 5, rule 2). So any tool that keeps that folder in step with another machine works, with no code in this app. These parts already exist and are what a file-level sync relies on:
 
-### 13.7 Tests
-- Two local folders as fake remotes (rclone's local backend): edit both sides, delete one side, mass delete, empty remote, interrupted pass, lock contention.
-- Mocked 400 `invalid_grant` shows the reconnect banner.
-- A live round trip against a throwaway Drive folder with your account.
-- Check that desktop Manuskript opens a project after it has travelled through Drive and back.
+- **`.lock` marker** (`server/app/synclock.py`, tested). While a `.lock` file is in a project folder the web app refuses to *write* (reads still work, HTTP 423), so a sync pass never sees a half-changed project. A marker older than 15 minutes is treated as stale and ignored, so a crashed script cannot lock a project forever. Dot-files are ignored by msklib and by desktop Manuskript.
+- **Live refresh.** While at least one browser tab is open, a background watcher polls the project folders and publishes an SSE event when files change on disk (second device, sync pass), so that tab updates. With no tab open it does nothing, which is fine: the next page load reads the files fresh.
+- **Stale-save protection.** Saving a document sends the version it was loaded from; if the file changed underneath (desktop edit, sync), the server answers 409 with the on-disk text instead of overwriting.
+- **Nothing is hard-deleted.** Deleted scenes, projects and templates move to `.trash/`.
+- **Whole-project zip** download and upload (`/api/projects/{name}/download`, `/upload`), and `.msk` import.
 
-Done when: an edit on the phone reaches the Ubuntu desktop and back, a forced conflict leaves both versions, and a simulated mass delete is stopped.
+What is left, all small and optional:
 
-### 13.8 Open questions to settle in the spike
-- Exact flag spellings and defaults for the rclone version we ship (pin it in the Dockerfile), and a sensible `--max-delete` percentage for projects with few files.
-- Whether a `--backup-dir1/2` layout works with Drive. The rclone page shows them as per-side directories and warns that deleted files from both paths would mix if one shared `--backup-dir` is used; I did not confirm any further rule about overlap.
-- How rclone stores the Drive token (config-file encryption) and whether the app can supply it at run time instead of a file.
-- `drive` (full scope, restricted, personal-use exemption, possible forced verification on publish) versus `drive.file` (per-file via the Picker, non-sensitive, cannot see desktop-written files). Decide first; it shapes the whole of Phase 7.
-- Whether Publish is blocked, or pushes you into verification, for your project with the `drive` scope.
-- Whether a published, unverified, personal-use app keeps its refresh token alive in practice. Documents say yes; weeks of real use will confirm. The reconnect banner is the safety net.
+1. ⬜ **`docs/syncing.md`**: how to use one of these, with the `.lock` convention (create `data/projects/<name>/.lock` containing JSON `{"owner": "...", "at": <unix seconds>}` (`at` is required; `owner` and `pid` are informational; see `synclock.py`) before a pass, and delete it after). Options to document: Syncthing (continuous, both ways), rsync/rclone on a timer (one way is safest), or a mounted network folder. Recommend one device edits at a time, and exclude `.trash/` and `.lock` from the sync.
+2. ⬜ **Conflict behaviour for two-way tools**: Syncthing keeps both versions as `.sync-conflict` files, which msklib would read as stray files. Decide whether msklib should ignore them, or whether the doc should tell people to exclude that pattern. Not yet tested.
+3. ⬜ **A "Download everything" backup button** is Phase 9 item 3; it also covers the case where you only want a manual copy.
 
-### 13.9 Sources retrieved on 8 Oct 2026 (and what was NOT)
-Retrieved and read:
-- developers.google.com/health/setup: 7-day expiry in Testing; generally no expiry once In Production unless revoked or unused for about six months.
-- dev.to/ko-hi/googles-oauth-testing-mode-expires-refresh-tokens-in-7-days-publish-the-consent-screen-before-24hm: 7-day rule quoting Google's docs; re-authenticating only buys 7 days; Publish button greyed out until branding fields are filled (not an official source).
-- groups.google.com/g/adwords-api/c/Z_kihrf6VCE: Google Ads API forum advisor says to change the status to In production.
-- unified.to/blog/why_google_oauth_returns, unipile.com, cdata.com: third-party summaries of Google's expiry conditions, including the 100-token cap and six-month inactivity (third party, quoting Google).
-- newscrewdriver.com/2023/02/04/google-oauth-test-tokens-expire-weekly: Publish prompting verification for sensitive scopes (2023, one user).
-- support.google.com/cloud/answer/13464323 (fetched directly): personal use, fewer than 100 users, no verification, "In Production", unverified-app screen and the 100-user cap in testing.
-- developers.google.com/drive/api/guides/api-specific-auth (fetched directly, updated 2026-09-03): `drive` is restricted, `drive.file` is non-sensitive and per-file, restricted-scope app categories, security assessment for server-side storage.
-- support.google.com/cloud/answer/13463817: verification types and timings (restricted scope about 6 weeks, security assessment).
-- developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification: exceptions include personal use; server-side storage needs a security assessment; recurring every 12 months.
-- rclone.org/bisync (fetched and read directly): flags and defaults, safety measures, Dropbox filter examples in its table of contents.
-NOT retrieved, from memory: the OAuth client type and redirect URI in 13.1 item 7; that Google ships no official Linux Drive client (13.6); how rclone stores or encrypts the Drive token; whether publishing with `drive` forces verification for a personal project.
+Not being built: OAuth, token storage, an in-app sync screen, conflict-resolution UI for sync.
+
+Done when: `docs/syncing.md` exists and one real two-machine run (edit on the web app, see it on the desktop app and back) has been tried and written up honestly, including what went wrong.
 
 ## 14. Phase 8: export, import, search, goals, revisions (about 1 week)
 
-1. **Export (server side, pandoc):** Markdown, plain text, HTML, DOCX, ODT, EPUB, and PDF (HTML to PDF with WeasyPrint, so no LaTeX install is needed). Choose which items to include (the compile flags), separators, title page, and a simple style choice. Preview in the browser before download; large exports run as a background job with progress.
-2. **Desktop compile parity:** the same compile flags, scene separators and the Manuskript "basic" outputs, tested by comparing against desktop output for the sample project.
-3. **Import:** Markdown or plain-text files and folders, OPML, DOCX/ODT/EPUB through pandoc, and zipped `.msk` projects. Split by headings into folders and scenes, with a dry-run preview.
-4. **Search:** project-wide full text (file scan, see Phase 2 item 7) across scenes, notes, characters, plots, world, with a results list that jumps to the match; command palette (Ctrl+K and a search icon on phone) for jumping to items and running actions.
-5. **Word-count goals:** per-scene and per-project goals, a daily goal with a progress ring, streak, and a small history chart stored in SQLite. Counts follow the same rules as desktop (count spaces setting).
-6. **Revisions:** list a scene's saved revisions, view a diff against the current text, restore with one tap (restoring itself creates a revision).
-7. **Frequency analyser and spell language:** word-frequency view; dictionary language per project; custom dictionary.
-8. Tests: export a golden project and compare text content; import then export round trip; FTS rebuild after external file changes.
+**What exists on the server (tested):** project-wide search, a scene's revisions (list, read, restore), cross-references and broken-link reports, whole-project zip download/upload, and import of a desktop `.msk` zip (`/api/projects/import-msk`).
+
+**What does NOT exist (an earlier version of this plan said it did):** export of any kind, compile, Markdown/plain-text/OPML/DOCX import, goals and history, frequency analyser. `pandoc` is installed in the Docker image but no server code calls it, and WeasyPrint is not a dependency. **There is no UI for any item below**, including the parts whose API exists.
+
+1. ⬜ **Export (server side, pandoc):** Markdown, plain text, HTML, DOCX, ODT, EPUB, and PDF (HTML to PDF with WeasyPrint, so no LaTeX install is needed). Choose which items to include (the compile flags), separators, title page, and a simple style choice. Preview in the browser before download; large exports run as a background job with progress. *Server and UI both to build.*
+2. ⬜ **Desktop compile parity:** the same compile flags, scene separators and the Manuskript "basic" outputs, tested by comparing against desktop output for the sample project.
+3. ⬜ **Import:** Markdown or plain-text files and folders, OPML, DOCX/ODT/EPUB through pandoc, with a dry-run preview. (`.msk` zip import exists as API, no UI.)
+4. ⬜ **Search UI:** API exists (file scan, no index, about 90 ms on a 2,000-scene project). Needs a results screen that jumps to the match, and a command palette (Ctrl+K and a search icon on phone).
+5. ⬜ **Word-count goals:** per-scene goal is stored (`setGoal`) and shown in the Inspector; there is no project goal, daily goal, streak or history. The editor's session goal is a fixed 500 and not saved.
+6. ⬜ **Revisions UI:** API exists. Needs a list per scene, a diff against the current text, and one-tap restore (restoring itself creates a revision).
+7. ⬜ **Frequency analyser and spell language.**
+8. ⬜ Tests: export a golden project and compare text content; import then export round trip.
+
+**Suggested order**, smallest and most useful first: Search UI (4), Revisions UI (6), then Export (1) because it is the biggest unknown and the one a finished book needs. Export is the next item I would build.
 
 Done when: a DOCX and an EPUB export open correctly, import of a Markdown manuscript works, and search finds text across the project.
 
 ## 15. Phase 9: hardening, backups, install guide (about 1 week)
 
-1. **Security review:** run an automated dependency audit; secure headers (CSP, HSTS via the proxy, no sniffing, frame denial); upload size and type limits; path-traversal tests on every file API; zip-slip tests on import and upload; SSRF guard on the llama endpoint field (only allow addresses you configure).
-2. **Rate limits** on login, AI calls (so a stuck page cannot run up a cloud bill), exports and sync triggers. A monthly AI-spend counter per provider on the settings page.
-3. **Backups:** nightly snapshot of `/data/projects` and the SQLite database to a separate volume, with restore tested; retention settings; one-click "download everything" zip.
-4. **Logging and health:** structured logs with secrets stripped, `/api/health` and `/api/ready`, a status page showing sync, disk and the last backup.
-5. **Updates:** versioned database migrations that run on start; refuse to start on a newer-than-known database; a documented upgrade and rollback.
-6. **Docs:** docs/install.md (Proxmox VM, Docker), docs/reverse-proxy.md (Caddy, nginx and Nginx Proxy Manager examples with WebSocket/SSE-friendly settings, no response buffering for the AI stream), docs/google-drive.md, docs/phone.md (install to home screen, Android and iPhone notes), docs/backup-restore.md.
-7. **Performance pass:** large-project load test (2,000 scenes, 500,000 words) on phone emulation; lazy-load the editor, charts and export UI; bundle-size budget.
-8. **A week of real use** on your own manuscript before calling it done; fix the daily annoyances.
+**Security fixes so far** (found while reviewing, each with a regression test):
+
+- All AI routes were reachable without logging in. Now the router requires login, and `test_all_routes_require_login.py` fails if any future route is left open (65 checks across every route in the OpenAPI schema).
+- `POST /api/auth/register` used to log the admin into the *new* account (session hijack on create). It now leaves the caller's session alone.
+- Provider API keys are never returned by the API (`has_key` only).
+- `GET /api/ai/models` could be made to fetch any URL; it now uses only the saved address.
+- Project, template and sample names are validated against path traversal; template create/delete is covered by tests.
+- `/register` is no longer reachable as a public page; the page redirects to login.
+
+Still to do:
+
+1. ⬜ **Security review:** run an automated dependency audit; secure headers (CSP, HSTS via the proxy, no sniffing, frame denial); upload size and type limits (zip size caps exist, other limits unchecked); path-traversal tests on every file API (names are validated; not every route has its own test); zip-slip tests (both upload and `.msk` import are tested with a `../escape` entry); SSRF: `GET /api/ai/models` no longer accepts an address from the request (fixed, tested). The saved llama address is still whatever the owner typed, which is fine for a single-owner box. The chat route also posts to that saved address.
+2. ⬜ **Rate limits** on login (done), AI calls (not done: a stuck page can still run up a cloud bill), and exports. A monthly AI-spend counter per provider.
+3. ⬜ **Backups:** nightly snapshot of `data/projects` and `data/app/app.db` to a separate volume, restore tested; one-click "download everything" zip (per-project zip exists).
+4. ⬜ **Logging and health:** `/api/health` exists; add structured logs with secrets stripped, `/api/ready`, a status page (disk, last backup).
+5. ⬜ **Updates:** versioned database migrations; the schema is `CREATE TABLE IF NOT EXISTS` today, so a column change would need migration code first.
+6. ⬜ **Docs:** `docs/install.md` exists and is accurate for first run; still needed: reverse-proxy (Caddy and nginx examples exist in `deploy/`; add SSE/no-buffering notes for the AI stream), phone install notes, backup/restore, **syncing** (Phase 7), and a note that AI keys are stored as plain text.
+7. ⬜ **Performance pass:** load test with 2,000 scenes and 500,000 words on a phone emulation; lazy-load the editor (the main JS bundle is about 620 kB, above the build tool's warning limit).
+8. ⬜ **A week of real use** on your own manuscript before calling it done.
 
 Done when: restore from backup is proven, the security checklist is clean, and the guides get a fresh VM to a working login.
 
+**Housekeeping found:** the dev server on port 8081 stores data in `/tmp/manuskript`, which the OS may clear; use a real folder for anything you care about. README still says "Google Drive sync" in its first line, which is stale.
+
 ## 16. Later phases
 
-**Phase 10: Dropbox (about 1 day).** Same rclone bisync engine with a Dropbox remote. The rclone bisync page itself includes Dropbox filter examples, so there is support for it. Add a provider switch in the sync settings and a docs/dropbox.md. Reuses all Phase 7 safety rules.
+**Phase 10: Dropbox.** Dropped together with Google Drive (see Phase 7). Nothing to build.
 
 **Phase 11: offline writing (1-2 weeks, optional).**
 1. Service worker caches the app shell and the open project's documents in IndexedDB.
@@ -347,8 +394,8 @@ Done when: restore from backup is proven, the security checklist is clean, and t
 |---|---|---|
 | msklib | pytest, hypothesis | golden byte-identical round trips on 2 real projects; random unicode titles; mutation then desktop-Manuskript open check |
 | Server | pytest + httpx | every endpoint, auth, CSRF, rate limits, concurrency, power-loss write test |
-| AI | pytest + fake SSE server | all four providers' payloads and stream parsers, cancel, error paths; plus a live smoke test against your llama server |
-| Sync | pytest + local rclone remotes | conflicts, mass delete stopped, interrupted pass, lock contention |
+| AI | pytest; **fake SSE server NOT built yet** | Contract, auth, context and settings are tested. Provider payloads/stream parsers, cancel and error paths are not; a live smoke test against your llama server is still to do |
+| Sync | pytest (`.lock` marker, 423 on write) | Exists. A real two-machine run is still to do (Phase 7) |
 | Browser | Playwright | phone (390x844, touch) and desktop (1440x900): login, write, format, drag-reorder, AI chat, theme switch |
 | Visual | Playwright screenshots | editor, cork, outline, AI sheet in all 32 themes; reviewed by you |
 | Accessibility | axe-core + the contrast test | no serious violations, WCAG AA text contrast in every theme |
@@ -361,8 +408,7 @@ Done when: restore from backup is proven, the security checklist is clean, and t
 |---|---|
 | msklib writes something desktop Manuskript reads differently | golden and mutation tests against the real desktop app on every change to msklib; Phase 1 gate |
 | Two devices edit at once | document versions, 409 on stale save, conflict prompt, sync conflict files, backups |
-| Mass delete from desktop rewrite propagating through Drive | `--max-delete`, backup dirs, check-access file, snapshots before big remote changes, guided first sync |
-| Google refresh token expires | publish the app, reconnect banner, token-age display, sync at least weekly |
+| An outside sync tool propagates a mass delete or two-way conflict | deletes go to `.trash/` inside each project (excluded from sync), the `.lock` marker pauses writes during a pass, stale saves get a 409; pick a one-way or one-editor-at-a-time setup and write it in docs/syncing.md. Two-way tools that make conflict copies are untested |
 | Phone keyboard hides the toolbar | visualViewport docking tested on Android Chrome and iOS Safari |
 | CodeMirror on mobile quirks (selection, IME) | test with real devices early in Phase 3; keep a plain-textarea fallback |
 | Scope creep to full desktop parity | each phase has a Done-when gate; features not in this plan go to a backlog |
@@ -376,15 +422,14 @@ Done when: restore from backup is proven, the security checklist is clean, and t
 |---|---|---|
 | First usable version | 0 to 4 plus a light 9 | about 4 weeks |
 | Near parity | 0 to 9 | about 10 to 12 weeks |
-| Dropbox | 10 | +1 day |
 | Offline writing | 11 | +1 to 2 weeks |
 
 Estimates assume one active phase at a time with a review gate between phases. Treat them as planning numbers, not promises; Phase 3 (editor on mobile) and Phase 7 (sync) are the likeliest to run over.
 
-## 20. First steps when Phase 0 starts
+## 20. First steps when Phase 0 started (history)
 
 1. Confirm the Proxmox VM spec (suggest 2 vCPU, 4 GB RAM, 40 GB disk, Debian 12) and which reverse proxy you use.
-2. Create the Google Cloud project early (the publishing and domain steps in 13.1 can take days to clear).
-3. Host a one-page privacy policy on your domain for the Google consent screen.
-4. Run the rclone spike from 13.8 on your Ubuntu rig before writing sync code.
+2. ~~Create the Google Cloud project early~~ (dropped, Phase 7).
+3. ~~Host a one-page privacy policy for the Google consent screen~~ (dropped).
+4. ~~Run the rclone spike~~ (dropped).
 5. Then scaffold `server/` and `web/` and build Phase 0.
