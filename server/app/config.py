@@ -30,6 +30,15 @@ class Settings(BaseSettings):
         return self.data_dir / "app"
 
     @property
+    def ai_dir(self) -> Path:
+        """AI provider settings, agent prompts, model cache and chat history.
+
+        Under app/ (not the data root) because app/ is the folder that is mounted and backed
+        up. The data root is not a volume, so files there are lost when the container is
+        recreated, and in Docker it is not writable by the app user."""
+        return self.app_dir / "ai"
+
+    @property
     def db_path(self) -> Path:
         return self.app_dir / "app.db"
 

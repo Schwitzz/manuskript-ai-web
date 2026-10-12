@@ -1,7 +1,29 @@
 services:
+  # One-shot helper: makes sure the data folders exist and belong to MSK_UID:MSK_GID before
+  # the app starts. Without it Docker creates ./data as root on a fresh clone, the app (which
+  # runs as your user) cannot write there, and it dies at startup with "unable to open
+  # database file". It also repairs folders left root-owned by an earlier failed start.
+  prepare-data:
+    build: .
+    image: manuskript-ai-web
+    user: "0:0"
+    restart: "no"
+    entrypoint:
+      - sh
+      - -c
+      - mkdir -p /data/app /data/projects /data/templates && chown -R ${MSK_UID:-1000}:${MSK_GID:-1000} /data/app /data/projects /data/templates
+    volumes:
+      - ./data/projects:/data/projects
+      - ./data/app:/data/app
+      - ./data/templates:/data/templates
+
   manuskript:
     build: .
+    image: manuskript-ai-web
     restart: unless-stopped
+    depends_on:
+      prepare-data:
+        condition: service_completed_successfully
     # Run as your own user so project files on the host stay yours (and open in desktop
     # Manuskript). Find yours with `id -u` and `id -g`.
     user: "${MSK_UID:-1000}:${MSK_GID:-1000}"
@@ -11,3 +33,5 @@ services:
     volumes:
       - ./data/projects:/data/projects
       - ./data/app:/data/app
+      - ./data/templates:/data/templates
+

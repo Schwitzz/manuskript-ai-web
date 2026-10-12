@@ -67,7 +67,8 @@ def test_models_are_cached_per_provider(logged_in, tmp_path):
     import time
     cache = {"OpenAI|": {"ts": time.time(), "models": ["gpt-a"]},
              "Anthropic|": {"ts": time.time(), "models": ["claude-a"]}}
-    (tmp_path / "ai_models_cache.json").write_text(json.dumps(cache))
+    (tmp_path / "app" / "ai").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "app" / "ai" / "ai_models_cache.json").write_text(json.dumps(cache))
     assert logged_in.get("/api/ai/models", params={"provider": "OpenAI"}).json() == {"models": ["gpt-a"]}
     assert logged_in.get("/api/ai/models", params={"provider": "Anthropic"}).json() == {"models": ["claude-a"]}
 
@@ -114,3 +115,34 @@ def upstream_models():
     state.url = f"http://127.0.0.1:{srv.server_port}"
     yield state
     srv.shutdown()
+
+
+def test_ai_data_lives_under_app_data_so_it_is_on_the_mounted_volume(logged_in, tmp_path):
+    """In Docker only data/app and data/projects are volumes and only they are writable by the
+    app user. AI files written to the data root crashed the first save (PermissionError)."""
+    h = csrf_headers(logged_in)
+    logged_in.post("/api/ai/providers", headers=h, json={"settings": [
+        {"provider": "OpenAI", "api_key": "sk-x", "model": "m"}]})
+    logged_in.put("/api/ai/agents", headers=h, json={"name": "Editor", "prompt": "p"})
+    logged_in.post("/api/ai/chats/new", headers=h, json={"project": "", "messages": []})
+    assert (tmp_path / "app" / "ai" / "ai_providers.json").is_file()
+    assert (tmp_path / "app" / "ai" / "ai_agents.json").is_file()
+    assert (tmp_path / "app" / "ai" / "chats" / "chats.db").is_file()
+    strays = [p.name for p in tmp_path.iterdir() if p.name not in ("app", "projects", "templates")]
+    assert strays == [], f"files written outside the mounted folders: {strays}"
+
+
+def test_files_from_an_older_version_are_moved_not_lost(client, tmp_path):
+    (tmp_path / "ai_providers.json").write_text(json.dumps({"OpenAI": {"api_key": "sk-old", "model": "m"}}))
+    from app.ai.history import ChatStore
+    old_store = ChatStore(str(tmp_path / "ai_chats"))  # a real history, as the old version wrote it
+    old_store.save({"id": "c1", "title": "Old chat", "project": "p", "messages": [{"role": "user", "content": "hi"}]})
+    old_store.close()
+    client.post("/api/auth/setup", json={"username": "ab", "password": "correct horse battery"})
+    got = {s["provider"]: s for s in client.get("/api/ai/providers").json()["settings"]}
+    assert got["OpenAI"]["has_key"] is True and got["OpenAI"]["model"] == "m"
+    assert not (tmp_path / "ai_providers.json").exists()
+    assert (tmp_path / "app" / "ai" / "ai_providers.json").is_file()
+    chats = client.get("/api/ai/chats").json()["chats"]
+    assert [c["title"] for c in chats] == ["Old chat"]          # the history survived the move
+    assert not (tmp_path / "ai_chats").exists()

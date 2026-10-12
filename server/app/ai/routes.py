@@ -134,7 +134,7 @@ DEFAULT_PROMPTS = {
 
 
 def _saved_prompts() -> dict:
-    path = get_settings().data_dir / "ai_agents.json"
+    path = _ai_file("ai_agents.json")
     try:
         data = json.loads(path.read_text())
     except (OSError, ValueError):
@@ -153,6 +153,26 @@ def _agent_prompt(agent: str) -> str:
 # ---------------------------------------------------------------------------
 
 log = logging.getLogger(__name__)
+
+_LEGACY = {"ai_agents.json": "ai_agents.json", "ai_providers.json": "ai_providers.json",
+           "ai_models_cache.json": "ai_models_cache.json", "chats": "ai_chats"}
+
+
+def _ai_file(name: str) -> Path:
+    """Path of an AI data file inside the app data folder, creating the folder on first use.
+    Files an earlier version wrote to the data root are moved in once, so nothing is lost."""
+    conf = get_settings()
+    conf.ai_dir.mkdir(parents=True, exist_ok=True)
+    target = conf.ai_dir / name
+    old = conf.data_dir / _LEGACY.get(name, name)
+    if old.exists() and not target.exists():
+        try:
+            old.rename(target)
+        except OSError:
+            pass  # read-only or another device: leave it, the app just starts fresh
+    return target
+
+
 router = APIRouter(prefix="/api/ai", tags=["ai"], dependencies=[Depends(current_user)])
 
 
@@ -174,7 +194,7 @@ class ProvidersBody(BaseModel):
 def get_providers():
     """Return provider settings for the current project."""
     settings = get_settings()
-    project_settings_path = settings.data_dir / "ai_providers.json"
+    project_settings_path = _ai_file("ai_providers.json")
     data = {}
     if project_settings_path.is_file():
         try:
@@ -191,7 +211,7 @@ def update_providers(body: ProvidersBody):
     shows keys, so it cannot send them back). Keys are stored as plain text in the data folder."""
     settings_in = body.settings
     settings = get_settings()
-    project_settings_path = settings.data_dir / "ai_providers.json"
+    project_settings_path = _ai_file("ai_providers.json")
     data = {}
     if project_settings_path.is_file():
         try:
@@ -231,7 +251,7 @@ def update_agent(prompt: AgentPrompt):
         raise HTTPException(422, f"Unknown agent: {prompt.name}")
     data = _saved_prompts()
     data[prompt.name] = prompt.prompt
-    with open(get_settings().data_dir / "ai_agents.json", "w") as f:
+    with open(_ai_file("ai_agents.json"), "w") as f:
         json.dump(data, f)
     return get_agents()
 
@@ -247,12 +267,12 @@ def get_models(provider: str = OPENAI):
     fetch any URL on the server's behalf."""
     if provider not in PROVIDERS:
         raise HTTPException(422, f"Unknown provider: {provider}")
-    conf = _read_json(get_settings().data_dir / "ai_providers.json").get(provider, {})
+    conf = _read_json(_ai_file("ai_providers.json")).get(provider, {})
     endpoint, api_key = conf.get("endpoint", ""), conf.get("api_key", "")
     if provider == LOCAL and not endpoint:
         raise HTTPException(422, "No server address saved for the local model. Add it in AI settings.")
 
-    cache_file = get_settings().data_dir / "ai_models_cache.json"
+    cache_file = _ai_file("ai_models_cache.json")
     cache = _read_json(cache_file)
     key = f"{provider}|{endpoint}"
     hit = cache.get(key)
@@ -390,7 +410,7 @@ async def _stream_chat(chat_req: ChatRequest, request: Request, ctx):
 
         saved = {}
         try:
-            saved = json.loads((get_settings().data_dir / "ai_providers.json").read_text())
+            saved = json.loads((_ai_file("ai_providers.json")).read_text())
         except (OSError, ValueError):
             pass
         provider = chat_req.provider
@@ -509,7 +529,7 @@ class _ChatStoreContext:
 
     def __enter__(self):
         settings = get_settings()
-        store_dir = settings.data_dir / "ai_chats"
+        store_dir = _ai_file("chats")
         store_dir.mkdir(parents=True, exist_ok=True)
         self.chat_store = ChatStore(str(store_dir))
         return self.chat_store

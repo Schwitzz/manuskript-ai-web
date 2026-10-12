@@ -44,7 +44,7 @@ A self-hosted, single-user, phone-first web rewrite of the Manuskript AI fork.
 |---|---|---|
 | Server | Python 3.12, FastAPI, uvicorn | Reuses the existing Python AI code; native SSE streaming |
 | Project storage | Manuskript folder format on disk | Same files desktop Manuskript opens |
-| App database | SQLite (WAL) | Users and login attempts (sessions are signed cookies, not stored). (AI chats and provider settings live in `data/ai_chats/` and JSON files in `data/`, see Phase 4.) |
+| App database | SQLite (WAL) | Users and login attempts (sessions are signed cookies, not stored). (AI chats, provider settings and agent prompts live in `data/app/ai/`, see Phase 4.) |
 | Browser app | SvelteKit + TypeScript, built as a static PWA | Fast on phones, installs to the home screen |
 | Editor | CodeMirror 6 + live Markdown styling | Keeps text byte-exact (tabs, special spaces); rich-text editors rewrite Markdown |
 | Icons | Lucide | Clean, consistent, icon-led toolbar |
@@ -248,17 +248,17 @@ Goal: parity with the desktop AI dock, plus streaming over the web.
 Completed:
 
 1. ✅ **Providers** (`server/app/ai/__init__.py`): URL builders, headers, payloads and SSE stream parsers for llama.cpp, OpenAI, Anthropic and Gemini; model-list parsers; `estimateTokens`. No Qt.
-2. ✅ **Chat history** (`server/app/ai/history.py`): SQLite `ChatStore` in `data/ai_chats/`, chats tagged by project.
+2. ✅ **Chat history** (`server/app/ai/history.py`): SQLite `ChatStore` in `data/app/ai/chats/`, chats tagged by project.
 3. ✅ **Routes** (`server/app/ai/routes.py`): `GET/POST /providers`, `GET /models`, `GET/PUT /agents`, `POST /chats/new`, `GET /chats`, `GET/PUT/DELETE /chats/{id}`, `POST /chat` (SSE streaming). Login required on all.
 4. ✅ **Context builder** (`server/app/ai/context.py`): per-source toggles (selection, scene, summary, POV, book).
-5. ✅ **Agent prompts**: four built-ins (Co-author, Editor, Publisher, Reader), editable, saved in `data/ai_agents.json`.
+5. ✅ **Agent prompts**: four built-ins (Co-author, Editor, Publisher, Reader), editable, saved in `data/app/ai/ai_agents.json`.
 6. ✅ **UI**: AI settings page, chat panel, chat history (list, rename, delete), status line, editor extras.
 
 Still open (none of these block using it with a local model):
 
 7. ⬜ **Cloud providers**: Anthropic, Gemini and OpenAI have parser and payload tests only. Run one chat against each you plan to use. Also untested: a thinking model with Thinking switched on in the browser (it works over the API but took 140 s to answer "2+2" on this model), and Cancel from the browser button (tested at the connection level only).
 8. ⬜ **Selection as context**: the "selection" toggle is sent but the server only uses the scene, summary, POV and book sources. Today the selected text reaches the model only because "Ask AI about selection" puts it in the message.
-9. ⬜ **Keys are stored as plain text** in `data/ai_providers.json` (the code comment says so). Acceptable for a single-owner box behind a login, but note it in the install guide, and consider encrypting with a key derived from `MSK_SECRET_KEY`.
+9. ⬜ **Keys are stored as plain text** in `data/app/ai/ai_providers.json` (the code comment says so). Acceptable for a single-owner box behind a login, but note it in the install guide, and consider encrypting with a key derived from `MSK_SECRET_KEY`.
 10. ⬜ **Spend limits** (Phase 9 item 2).
 
 Done when: a chat streams from your llama.cpp server with the open scene as context, the model can be switched mid-chat, history persists, and Cancel stops the upstream request. **Met for the local model.**
@@ -375,6 +375,8 @@ Still to do:
 Done when: restore from backup is proven, the security checklist is clean, and the guides get a fresh VM to a working login.
 
 **Housekeeping found:** the dev server on port 8081 stores data in `/tmp/manuskript`, which the OS may clear; use a real folder for anything you care about. README still says "Google Drive sync" in its first line, which is stale.
+
+**Docker launch bug (found 12 Oct 2026, fixed).** A fresh `git clone` + `docker compose up` built fine but the app crashed at start with `sqlite3.OperationalError: unable to open database file` and restarted forever. Cause: Docker creates the missing `./data` folders as root, while the app runs as your user (`MSK_UID`), so it could not write. A second, hidden bug sat behind it: AI settings and chat history were written to the data root (`/data/ai_*.json`), which is not a mounted volume and not writable by the app user, so the first "save provider settings" returned 500 and the data would have been lost whenever the container was recreated. Fixes: a one-shot `prepare-data` service creates and chowns `data/app`, `data/projects` and `data/templates` before the app starts (also repairs folders left root-owned by an earlier failed start); AI files now live in `data/app/ai/` and files from the old location are moved in automatically; `data/templates` is a volume. Verified on a fresh clone, on a root-owned data folder, on a copy of the existing data, and across `docker compose down` + `up` (projects, templates, AI settings, agent edits and chat history all survived). Two regression tests cover the new location and the move. Not verified: a different `MSK_UID` than the host user's (the helper uses whatever `.env` says), and Docker on a platform other than this Linux host.
 
 ## 16. Later phases
 
