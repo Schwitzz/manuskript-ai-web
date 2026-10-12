@@ -5,6 +5,8 @@
 	import { project } from '#lib/stores/project.svelte.ts';
 	import { call, ApiError } from '#lib/api';
 	import { findItem, toItems, type LabelDef, type OutlineItem } from '#lib/outline.ts';
+	import { moveItem, inSubtree, sameParentPosition } from '#lib/dnd.ts';
+	import Sortable, { type SortableEvent, type MoveEvent } from 'sortablejs';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
@@ -15,6 +17,8 @@
 	let statusList = $state<string[]>([]);
 	let expanded = $state(new Set<string>());
 	let loading = $state(true);
+	let dragging = $state(false);
+	let treeEl: HTMLDivElement | undefined = $state();
 	let error = $state('');
 	let editingId = $state<number | null>(null);
 	let editingTitle = $state('');
@@ -36,6 +40,85 @@
 		outline = toItems(o.items);
 		labels = l.labels;
 		statusList = l.status;
+	}
+
+	/**
+	 * SortableJS on every `.outline-children` container.
+	 * `outline` and `expanded` are dependencies — whenever the tree
+	 * structure or open-folders change we (re)create the instances.
+	 */
+	const instances: Sortable[] = [];
+	$effect(() => {
+		const root = treeEl; const o = outline; const e = expanded;
+		if (!root) return;
+		instances.forEach((s) => s.destroy());
+		instances.length = 0;
+		for (const el of root.querySelectorAll<HTMLElement>('.outline-children')) {
+			instances.push(Sortable.create(el, {
+				draggable: '[data-node]',
+				group: 'outline',
+				animation: 120,
+				delay: 350,
+				delayOnTouchOnly: true,
+				touchStartThreshold: 5,
+				scroll: true,
+				scrollSensitivity: 30,
+				scrollSpeed: 15,
+				ghostClass: 'dnd-ghost',
+				chosenClass: 'dnd-chosen',
+				dragClass: 'dnd-drag',
+				onChoose: () => (dragging = true),
+				onUnchoose: () => (dragging = false),
+				onMove(evt) {
+					// Refuse dropping a folder into its own subtree.
+					const dragId = Number(evt.dragged.dataset.node);
+					const toParent = parentOf(evt.to);
+					if (!Number.isNaN(dragId) && toParent !== null && inSubtree(o, dragId, toParent)) return false;
+					// Hover over a collapsed folder → expand it so the user can drop into it.
+					const rel = evt.related ?? null;
+					if (rel?.dataset.node) {
+						const rid = Number(rel.dataset.node);
+						const f = findItem(o, rid);
+						if (f?.type === 'folder' && f.children.length > 0 && !e.has(String(rid))) e.add(String(rid));
+					}
+					return true;
+				},
+				onEnd(evt) {
+					const id = Number(evt.item.dataset.node);
+					if (!Number.isFinite(id)) return;
+					const toParent = parentOf(evt.to);
+					const fromParent = parentOf(evt.from);
+					const to = evt.newDraggableIndex;
+					const from = evt.oldDraggableIndex;
+					if (to === undefined || evt.to === evt.from && from === to) return;
+					const position = evt.to === evt.from || fromParent === toParent
+						? sameParentPosition(from, to)
+						: to;
+					let next: OutlineItem[];
+					try {
+						next = moveItem(outline, id, toParent, position);
+					} catch {
+						void load();
+						return;
+					}
+					outline = next;
+					if (toParent !== null && !e.has(String(toParent))) e.add(String(toParent));
+					call('POST /api/projects/{name}/outline/{item_id}/move', {
+						params: { name: PROJECT, item_id: id },
+						body: { parent_id: toParent, position }
+					}).catch(async (e) => {
+						error = msg(e, 'Could not move');
+						await load();
+					});
+				}
+			}));
+		}
+	});
+	$effect(() => () => { instances.forEach((s) => s.destroy()); instances.length = 0; });
+
+	function parentOf(el: HTMLElement): number | null {
+		const v = el.dataset.parent;
+		return v ? Number(v) : null;
 	}
 
 	function expandAll(items: OutlineItem[]) {
@@ -159,7 +242,7 @@
 			{#if outline.length === 0}
 				<p class="py-12 text-center" style="color: var(--muted)">This project has no scenes yet.</p>
 			{:else}
-				<div class="flex flex-col rounded-lg border" style="border-color: var(--border)" role="tree" aria-label="Outline">
+				<div class="flex flex-col rounded-lg border" style="border-color: var(--border)" role="tree" aria-label="Outline" bind:this={treeEl}>
 					{#each outline as item (item.id)}
 						<OutlineNode
 							node={item}

@@ -38,3 +38,24 @@ select {
 	outline: 2px solid var(--accent);
 	outline-offset: 2px;
 }
+
+/* ─── drag-and-drop (SortableJS) ─────────────────────────────────────────── */
+/*
+ * `touch-action: none` on sortable containers lets a long-press (350 ms)
+ * always win over page scroll on phones; while a row/card is being dragged,
+ * SortableJS auto-scrolls the page near the edges (scroll: true).
+ * On mouse, `touch-action` is irrelevant — normal hover/click works fine.
+ */
+.cork-grid, .outline-children { touch-action: none; }
+/* While dragging, the tree gets a grab cursor; dragging a card is fine. */
+body:not([data-dnd=""]) .outline-children { cursor: grab; }
+body[data-dnd="dragging"] .outline-children { cursor: grabbing; }
+
+/* Visual feedback: ghost in the original slot, dragged element follows cursor. */
+.dnd-ghost   { opacity: 0.35; }
+.dnd-chosen  { opacity: 0.8; }
+.dnd-drag    { box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+
+/* Outline: child containers have no left padding of their own; depth is
+   carried via the `data-node` rows' `padding-left` style. */
+.outline-children { padding-inline-start: 24px; }

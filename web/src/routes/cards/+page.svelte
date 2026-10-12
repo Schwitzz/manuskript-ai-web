@@ -4,6 +4,8 @@
 	import { project } from '#lib/stores/project.svelte.ts';
 	import { call, ApiError } from '#lib/api';
 	import { findItem, labelColor, pathTo, toItems, type LabelDef, type OutlineItem } from '#lib/outline.ts';
+	import { moveItem, sameParentPosition } from '#lib/dnd.ts';
+	import Sortable from 'sortablejs';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { ChevronLeft, ChevronRight, ChevronUp, Folder, FileText, Plus, LayoutGrid, Waypoints } from '@lucide/svelte';
@@ -23,6 +25,10 @@
 	let busy = $state(false);
 	/** View mode: 'grid' (card list) or 'flow' (whiteboard). */
 	let view = $state<'grid' | 'flow'>('grid');
+	/** True while a card is being lifted/dragged; disables the arrow buttons. */
+	let dragging = $state(false);
+	/** The grid element, so the sortable can follow it across view toggles. */
+	let gridEl: HTMLUListElement | undefined = $state();
 
 	const trail = $derived(folderId === null ? [] : pathTo(outline, folderId));
 	const cards = $derived(folderId === null ? outline : (findItem(outline, folderId)?.children ?? []));
@@ -98,6 +104,60 @@
 		}
 	}
 
+	/**
+	 * Touch drag-and-drop: hold a card for 350ms to lift it, drag it anywhere
+	 * on the grid, drop it. On touch the grid has `touch-action: none`
+	 * (layout.css), so a hold always wins over page scrolling; while dragging,
+	 * SortableJS auto-scrolls the page when the card nears an edge.
+	 */
+	$effect(() => {
+		const el = gridEl;
+		if (!el || view !== 'grid' || loading) return;
+		const sortable = Sortable.create(el, {
+			draggable: 'li[data-card]',
+			animation: 150,
+			delay: 350,
+			delayOnTouchOnly: true,
+			touchStartThreshold: 5,
+			scroll: true,
+			scrollSensitivity: 30,
+			scrollSpeed: 15,
+			ghostClass: 'dnd-ghost',
+			chosenClass: 'dnd-chosen',
+			dragClass: 'dnd-drag',
+			onChoose: () => (dragging = true),
+			onUnchoose: () => (dragging = false),
+			onEnd: onDropEnd
+		});
+		return () => sortable.destroy();
+	});
+
+	/** The drop landed: update the tree optimistically, then persist it. */
+	function onDropEnd(evt: Sortable.SortableEvent) {
+		const from = evt.oldDraggableIndex;
+		const to = evt.newDraggableIndex;
+		const id = Number(evt.item?.dataset.card);
+		if (from === undefined || to === undefined || from === to || !Number.isFinite(id)) return;
+		const position = sameParentPosition(from, to);
+		let next: OutlineItem[];
+		try {
+			// The grid holds one folder's children, so the move is always within
+			// the same parent; `position` is the after-detach index for it.
+			next = moveItem(outline, id, folderId, position);
+		} catch {
+			void load(); // DOM and state disagree; resynchronise from the server
+			return;
+		}
+		outline = next; // Svelte re-renders in the order SortableJS already applied
+		call('POST /api/projects/{name}/outline/{item_id}/move', {
+			params: { name: PROJECT, item_id: id },
+			body: { parent_id: folderId, position }
+		}).catch(async (e) => {
+			error = msg(e, 'Could not move the card');
+			await load();
+		});
+	}
+
 	async function addCard(e: SubmitEvent) {
 		e.preventDefault();
 		const title = newTitle.trim();
@@ -148,11 +208,11 @@
 </div>
 
 {#if view === 'grid'}
-<ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Cards">
+<ul class="cork-grid grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Cards" bind:this={gridEl}>
 {#each cards as card, i (card.id)}
 {@const color = labelColor(labels, card.label)}
 {@const status = card.status ? (statusList[Number(card.status) - 1] ?? '') : ''}
-<li class="flex flex-col overflow-hidden rounded-lg border" style="background: var(--surface); border-color: var(--border)">
+<li data-card={card.id} class="flex flex-col overflow-hidden rounded-lg border" style="background: var(--surface); border-color: var(--border)">
 <div class="h-1.5" style="background: {color || 'transparent'}"></div>
 <button type="button" class="flex flex-1 flex-col gap-2 p-3 text-left" aria-label="Open {card.title}" onclick={() => open(card)}>
 <span class="flex items-center gap-2 font-medium">
@@ -166,10 +226,10 @@
 </span>
 </button>
 <div class="flex items-center justify-end gap-1 border-t px-1" style="border-color: var(--border)">
-<button type="button" class="tap flex size-9 items-center justify-center rounded disabled:opacity-30" aria-label="Move {card.title} earlier" disabled={busy || i === 0} onclick={() => shift(card, -1)}><ChevronLeft size={16} /></button>
-<button type="button" class="tap flex size-9 items-center justify-center rounded disabled:opacity-30" aria-label="Move {card.title} later" disabled={busy || i === cards.length - 1} onclick={() => shift(card, 1)}><ChevronRight size={16} /></button>
+<button type="button" class="tap flex size-9 items-center justify-center rounded disabled:opacity-30" aria-label="Move {card.title} earlier" disabled={busy || dragging || i === 0} onclick={() => shift(card, -1)}><ChevronLeft size={16} /></button>
+<button type="button" class="tap flex size-9 items-center justify-center rounded disabled:opacity-30" aria-label="Move {card.title} later" disabled={busy || dragging || i === cards.length - 1} onclick={() => shift(card, 1)}><ChevronRight size={16} /></button>
 {#if folderId !== null}
-<button type="button" class="tap flex size-9 items-center justify-center rounded disabled:opacity-30" aria-label="Move {card.title} out of this folder" disabled={busy} onclick={() => moveUp(card)}><ChevronUp size={16} /></button>
+<button type="button" class="tap flex size-9 items-center justify-center rounded disabled:opacity-30" aria-label="Move {card.title} out of this folder" disabled={busy || dragging} onclick={() => moveUp(card)}><ChevronUp size={16} /></button>
 {/if}
 </div>
 </li>

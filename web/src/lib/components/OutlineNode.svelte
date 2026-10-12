@@ -51,6 +51,7 @@
 
 <div
 	role="treeitem"
+	data-node={node.id}
 	aria-selected={selectedId === node.id}
 	aria-expanded={node.children.length > 0 ? isOpen : undefined}
 	tabindex="0"
@@ -133,23 +134,25 @@
 	>
 </div>
 
-{#if isOpen}
-	{#each node.children as child (child.id)}
-		<OutlineNode
-			node={child}
-			depth={depth + 1}
-			{expanded}
-			{selectedId}
-			{editingId}
-			{editingTitle}
-			{labels}
-			{statusList}
-			{onToggleExpand}
-			{onSelect}
-			{onRenameStart}
-			{onRename}
-			{onRenameCancel}
-			{onDelete}
-		/>
-	{/each}
+{#if isOpen && node.children.length > 0}
+	<div class="outline-children" role="group" data-parent={node.type === 'folder' ? String(node.id) : ''}>
+		{#each node.children as child (child.id)}
+			<OutlineNode
+				node={child}
+				depth={depth + 1}
+				{expanded}
+				{selectedId}
+				{editingId}
+				{editingTitle}
+				{labels}
+				{statusList}
+				{onToggleExpand}
+				{onSelect}
+				{onRenameStart}
+				{onRename}
+				{onRenameCancel}
+				{onDelete}
+			/>
+		{/each}
+	</div>
 {/if}
