@@ -6,7 +6,8 @@
 	import { findItem, labelColor, pathTo, toItems, type LabelDef, type OutlineItem } from '#lib/outline.ts';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { ChevronLeft, ChevronRight, ChevronUp, Folder, FileText, Plus } from '@lucide/svelte';
+	import { ChevronLeft, ChevronRight, ChevronUp, Folder, FileText, Plus, LayoutGrid, Waypoints } from '@lucide/svelte';
+	import Whiteboard from '#lib/components/Whiteboard.svelte';
 
 	const PROJECT = project.name ?? '';
 
@@ -20,6 +21,8 @@
 	let adding = $state(false);
 	let newTitle = $state('');
 	let busy = $state(false);
+	/** View mode: 'grid' (card list) or 'flow' (whiteboard). */
+	let view = $state<'grid' | 'flow'>('grid');
 
 	const trail = $derived(folderId === null ? [] : pathTo(outline, folderId));
 	const cards = $derived(folderId === null ? outline : (findItem(outline, folderId)?.children ?? []));
@@ -138,6 +141,13 @@
 {/each}
 </nav>
 
+<!-- View toggle -->
+<div class="flex items-center gap-1 text-sm">
+<button type="button" class="flex items-center gap-1 rounded px-2 py-1" style="background: {view === 'grid' ? 'var(--accent)' : 'transparent'}; color: {view === 'grid' ? 'var(--accent-text)' : 'var(--muted)'}" onclick={() => (view = 'grid')}><LayoutGrid size={14} /> Grid</button>
+<button type="button" class="flex items-center gap-1 rounded px-2 py-1" style="background: {view === 'flow' ? 'var(--accent)' : 'transparent'}; color: {view === 'flow' ? 'var(--accent-text)' : 'var(--muted)'}" onclick={() => (view = 'flow')}><Waypoints size={14} /> Flow</button>
+</div>
+
+{#if view === 'grid'}
 <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Cards">
 {#each cards as card, i (card.id)}
 {@const color = labelColor(labels, card.label)}
@@ -179,6 +189,9 @@
 {/if}
 </li>
 </ul>
+{:else}
+<Whiteboard project={PROJECT} items={outline} {labels} {statusList} />
+{/if}
 {/if}
 </div>
 </AppShell>

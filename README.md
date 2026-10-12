@@ -12,7 +12,7 @@ Licence: GPL-3.0 (see COPYING). Parts are derived from Manuskript
 ## Development
 
 ```bash
-# server (tests: 306)
+# server (tests: 316)
 cd server && uv sync && uv run pytest
 
 # web app (type check, build, e2e at 390x844 and 1440x900)
@@ -26,11 +26,12 @@ cp .env.example .env   # set MSK_SECRET_KEY
 docker compose up -d
 ```
 
-Status: writing, outline, cards, characters, plots, world, labels, project templates and the
-AI assistant are built. Not built: export, import, search/revisions screens, drag-and-drop,
-storyline, backups, offline mode. There is no cloud sync; sync the project folders with a tool
-of your choice. The AI assistant has been run live against a llama.cpp server; the cloud
-providers (OpenAI, Anthropic, Gemini) have tests but have not been tried with real accounts.
+Status: writing, outline, cards, whiteboard (flow view), characters, plots, world, labels,
+project templates and the AI assistant are built. Not built: export, import,
+search/revisions screens, drag-and-drop, storyline, backups, offline mode. There is no cloud
+sync; sync the project folders with a tool of your choice. The AI assistant has been run live
+against a llama.cpp server; the cloud providers (OpenAI, Anthropic, Gemini) have tests but have
+not been tried with real accounts.
 See [PLAN.md](PLAN.md) for the details and the next steps.
 
 Note: port 8000 is used by another service on the dev rig, so use `MSK_PORT=8770` in `.env` there.
