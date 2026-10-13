@@ -72,10 +72,10 @@ test('create a project, open it in the editor, and use the outline', async ({ pa
 	await expect(page.locator('.cm-content')).toContainText('dark and stormy night');
 });
 
-test('corkboard: add scenes and the files follow', async ({ page }) => {
+test('story: add scenes, reorder, open, and delete', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('msk_project', 'novel'));
 	await login(page);
-	await nav(page, 'Cards');
+	await nav(page, 'Story');
 
 	// Page renders with an Add button; add a scene.
 	await page.getByRole('button', { name: 'Add' }).click();
@@ -86,6 +86,19 @@ test('corkboard: add scenes and the files follow', async ({ page }) => {
 	// The server reflects the new scene.
 	const items = (await (await page.request.get('/api/projects/novel/outline')).json()).items;
 	expect(items[0].children.map((c: { title: string }) => c.title)).toContain('Second');
+
+	// Select a scene and use the action bar to move it.
+	await page.getByRole('button', { name: /^Scene 3$/ }).click();
+	// The action bar should appear at the bottom.
+	await expect(page.locator('.sticky.bottom-0')).toBeVisible();
+	await expect(page.getByRole('button', { title: 'Move earlier' })).toBeVisible();
+	await expect(page.getByRole('button', { title: 'Move later' })).toBeVisible();
+
+	// Rename the scene.
+	await page.getByRole('button', { title: 'Rename' }).click();
+	await page.getByLabel('Rename scene').fill('Renamed Scene');
+	await page.keyboard.press('Enter');
+	await expect(page.getByText('Renamed Scene')).toBeVisible();
 });
 
 test('characters: create one in the UI, then undo a delete', async ({ page }) => {

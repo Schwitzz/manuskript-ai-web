@@ -5,7 +5,7 @@
 	import { call, ApiError } from '#lib/api';
 	import { toItems, type LabelDef, type OutlineItem } from '#lib/outline.ts';
 	import { onMount } from 'svelte';
-	import Whiteboard from '#lib/components/Whiteboard.svelte';
+	import Storyboard from '#lib/components/Storyboard.svelte';
 
 	const PROJECT = project.name ?? '';
 
@@ -44,6 +44,6 @@
 	});
 </script>
 
-<AppShell title="Cards">
-<Whiteboard project={PROJECT} items={outline} {labels} {statusList} />
+<AppShell title="Story">
+<Storyboard project={PROJECT} items={outline} {labels} {statusList} />
 </AppShell>

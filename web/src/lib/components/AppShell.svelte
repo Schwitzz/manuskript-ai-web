@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { PenLine, ListTree, LayoutGrid, Users, Menu, Sparkles } from '@lucide/svelte';
+	import { PenLine, ListTree, Waypoints, Users, Menu, Sparkles } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 	import { ai } from '#lib/stores/ai.svelte.ts';
 
@@ -9,7 +9,7 @@
 	const tabs = [
 		{ href: '/write', label: 'Write', icon: PenLine },
 		{ href: '/outline', label: 'Outline', icon: ListTree },
-		{ href: '/cards', label: 'Cards', icon: LayoutGrid },
+		{ href: '/cards', label: 'Story', icon: Waypoints },
 		{ href: '/characters', label: 'Characters', icon: Users },
 		{ href: '/more', label: 'More', icon: Menu }
 	];

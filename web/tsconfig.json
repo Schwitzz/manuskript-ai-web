@@ -3,6 +3,8 @@
 	"compilerOptions": {
 		"strict": true,
 		"allowSyntheticDefaultImports": true,
+		"moduleResolution": "bundler",
+		"types": ["svelte", "$app/types"],
 		"paths": {
 			"#lib/*": ["./src/lib/*"]
 		}
