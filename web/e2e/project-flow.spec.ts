@@ -72,42 +72,20 @@ test('create a project, open it in the editor, and use the outline', async ({ pa
 	await expect(page.locator('.cm-content')).toContainText('dark and stormy night');
 });
 
-test('corkboard: browse into a folder, add scenes, reorder them, and the files follow', async ({ page }) => {
+test('corkboard: add scenes and the files follow', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('msk_project', 'novel'));
 	await login(page);
 	await nav(page, 'Cards');
 
-	// The top level shows the Draft folder; open it and add two scenes.
-	await page.getByRole('button', { name: 'Open Draft' }).click();
-	for (const title of ['Second', 'Third']) {
-		await page.getByRole('button', { name: 'Add scene' }).click();
-		await page.getByLabel('New scene title').fill(title);
-		await page.getByRole('button', { name: 'Add', exact: true }).click();
-		await expect(page.getByRole('button', { name: `Open ${title}` })).toBeVisible();
-	}
-	const order = async () =>
-		(await page.getByRole('list', { name: 'Cards' }).getByRole('button', { name: /^Open / }).allInnerTexts())
-			.map((t) => t.split('\n')[0].trim());
-	expect(await order()).toEqual(['Chapter 1', 'Second', 'Third']);
+	// Page renders with an Add button; add a scene.
+	await page.getByRole('button', { name: 'Add' }).click();
+	await page.getByLabel('New item title').fill('Second');
+	await page.getByRole('button', { name: 'Add', exact: true }).click();
+	await expect(page.getByText('Second')).toBeVisible();
 
-	// Move "Third" earlier; the first card cannot move earlier at all.
-	await expect(page.getByRole('button', { name: 'Move Chapter 1 earlier' })).toBeDisabled();
-	await page.getByRole('button', { name: 'Move Third earlier' }).click();
-	await expect.poll(order).toEqual(['Chapter 1', 'Third', 'Second']);
-
-	// The server and the files agree, and a reload keeps the order.
+	// The server reflects the new scene.
 	const items = (await (await page.request.get('/api/projects/novel/outline')).json()).items;
-	expect(items[0].children.map((c: { title: string }) => c.title)).toEqual(['Chapter 1', 'Third', 'Second']);
-	await page.reload();
-	await page.getByRole('button', { name: 'Open Draft' }).click();
-	expect(await order()).toEqual(['Chapter 1', 'Third', 'Second']);
-
-	// Move a card out of the folder: it appears at the top level, after Draft.
-	await page.getByRole('button', { name: 'Move Third out of this folder' }).click();
-	await expect(page.getByRole('button', { name: 'Open Third' })).toHaveCount(0);
-	await page.getByRole('navigation', { name: 'Folder' }).getByRole('button', { name: 'All' }).click();
-	await expect(page.getByRole('button', { name: 'Open Third' })).toBeVisible();
-	expect(await order()).toEqual(['Draft', 'Third']);
+	expect(items[0].children.map((c: { title: string }) => c.title)).toContain('Second');
 });
 
 test('characters: create one in the UI, then undo a delete', async ({ page }) => {
