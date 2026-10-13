@@ -1,9 +1,9 @@
 # manuskript-ai-web: build plan
 
 A self-hosted, single-user, phone-first web rewrite of the Manuskript AI fork.
-**Status (12 Oct 2026):** Phases 0-3 complete. Phase 4 (AI) now works end to end: a live chat against the llama.cpp server streams, uses the open scene as context and saves (see its section). Phase 5 done. Phase 6: outline, corkboard and whiteboard (flow view) done; storyline and drag-and-drop not started. Phase 7 (Google Drive) is **dropped**; files will be synced another way (see Phase 7). Next: Phase 8 UI (search, revisions, export/import), then Phase 9 hardening.
+**Status (13 Oct 2026):** Phases 0-3 complete. Phase 4 (AI) now works end to end: a live chat against the llama.cpp server streams, uses the open scene as context and saves (see its section). Phase 5 done. Phase 6: outline, corkboard, and storyboard flow diagram done; storyline and drag-and-drop not started. Phase 7 (Google Drive) is **dropped**; files will be synced another way (see Phase 7). Next: Phase 8 UI (search, revisions, export/import), then Phase 9 hardening.
 
-**How this was last verified:** server 316 pytest, web 136 vitest, 18 Playwright (+1 live AI test, run on demand) (phone 390x844 and desktop 1440x900), svelte-check 0 errors. Run them with the commands in README.md.
+**How this was last verified:** server 308 pytest, web 139 vitest, 18 Playwright (+1 live AI test, run on demand) (phone 390x844 and desktop 1440x900), svelte-check 0 errors. Run them with the commands in README.md.
 
 ## Progress Summary
 
@@ -15,7 +15,7 @@ A self-hosted, single-user, phone-first web rewrite of the Manuskript AI fork.
 | 3: editor, icon toolbar, design system | ✅ Done | CodeMirror editor with line wrapping, formatting toolbar, autosave, version conflicts, word count, session goal, typewriter and line focus, 32 themes. An empty scene now gets an editor (it used to show none). |
 | 4: AI assistant | ✅ Done (local model) | Repaired and run live against llama.cpp on 11 Oct 2026. Anthropic, Gemini and OpenAI have parser/payload tests but have not been run against real accounts. See the Phase 4 section. |
 | 5: characters, plots, world | ✅ Done | Full CRUD, search, inspector, general+summary, labels. Undo after delete now really re-creates the item on the server. Remaining: bulk actions, virtualised lists (Phase 6). |
-| 6: corkboard, outline, storyline | 🔄 Partial | Outline, Cards (corkboard) and Whiteboard (flow view) done and tested. Not started: touch drag and drop, outline table, folder views, storyline, bulk actions, virtualised lists. |
+| 6: corkboard, outline, storyline | 🔄 Partial | Outline, Cards (corkboard) and Storyboard (flow diagram) done and tested. Not started: touch drag and drop, outline table, folder views, storyline, bulk actions, virtualised lists. |
 | 6b: project templates | ✅ Done | Save a project's structure as a template, start new projects from it. Not in the original plan. |
 | 7: Google Drive sync | ❌ Dropped | Decision 11 Oct 2026: not building Google integration. Project files will be synced another way (rsync, Syncthing or a mounted folder; see Phase 7). |
 | 8: export, import, search, goals, revisions | ⬜ Pending | **Server side is only partly done.** Search, revisions, `.msk` import and zip upload/download exist as API. Export (pandoc/WeasyPrint), compile and Markdown/OPML import do NOT exist yet (an earlier note here said they did). No UI for any of it. |
@@ -290,7 +290,7 @@ Goal: the visual views, usable by touch.
 
 1. ✅ **Outline** (`/outline`): tree with expand/collapse, inline rename (Enter and blur no longer double-save), delete with a trash confirmation that names the folder contents, label buttons and status select with the real colours, summary and notes, "Open in editor". Keyboard-operable.
 2. ✅ **Corkboard** (`/cards`): cards for the current folder with title, summary, label colour stripe, status chip and word count (new `words` field on every outline item); breadcrumb into folders; add a scene; move a card earlier/later or out of its folder; the new order is written to the project files. Reordering uses buttons, not dragging.
-3. ✅ **Whiteboard / flow view** (`/cards`, toggleable from the corkboard): a SvelteFlow canvas that shows the folder's scenes as connected cards in reading order. Layout is saved in the project's dot-folder `.whiteboards/layout.json`, which msklib and desktop Manuskript ignore, so the graph is a pure web-app convenience and never touches the files desktop opens. Node positions persist per project; edges follow the scene order. Server endpoint `GET/PUT /api/projects/{name}/whiteboard` (login required) with 10 tests; web has pure-logic modules (`whiteboard.ts`) with unit tests plus the `Whiteboard` and `WhiteboardCard` Svelte components.
+3. ✅ **Storyboard flow diagram** (`/cards`, default view): a deterministic flow diagram showing the folder's scenes in outline order as numbered cards connected by chevron arrows. Each card shows a colour badge, a title, a summary clamp, a status chip, and a word count. No free-form dragging — order is controlled by action-bar arrows (swap earlier/later or move into/out of a folder). Folder boundaries appear as grouping containers. The flow is always recomputed from the outline (no persisted node positions); the API provides `GET/POST /api/projects/{name}/outline` and `POST .../outline/{id}/move`. Pure-logic modules (`storyboard.ts`) handle `sceneFlow`, `moveInFlow`, and `moveOutOfFolder` with 5 unit tests; `Storyboard.svelte` renders the serpentine grid and `StoryboardCard.svelte` renders each scene card. No external canvas library used.
 4. ⬜ **Touch drag and drop** (SortableJS is not installed): long-press to lift, auto-scroll, drop between cards or into a folder.
 5. ⬜ **Outline table**: sortable columns, column picker, inline editing; stacked rows on a phone.
 6. ⬜ **Folder views** (text, cork, outline) per folder, saved in project settings like desktop.
