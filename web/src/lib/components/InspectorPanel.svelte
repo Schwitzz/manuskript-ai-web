@@ -67,8 +67,9 @@
 		<div class="flex flex-col gap-4 p-4" style="border-top: 1px solid var(--border)">
 			{#if error}<p role="alert" class="text-xs" style="color: var(--danger)">{error}</p>{/if}
 			<div class="flex flex-col gap-1">
-				<label class="text-xs" style="color: var(--muted)">Label</label>
+				<label class="text-xs" style="color: var(--muted)" for="inspector-label">Label</label>
 				<select
+					id="inspector-label"
 					class="w-full rounded border px-2 py-1.5 text-sm"
 					style="background: var(--surface); border-color: var(--border)"
 					value={scene.label}
@@ -82,8 +83,9 @@
 			</div>
 
 			<div class="flex flex-col gap-1">
-				<label class="text-xs" style="color: var(--muted)">Status</label>
+				<label class="text-xs" style="color: var(--muted)" for="inspector-status">Status</label>
 				<select
+					id="inspector-status"
 					class="w-full rounded border px-2 py-1.5 text-sm"
 					style="background: var(--surface); border-color: var(--border)"
 					value={scene.status}
@@ -97,8 +99,9 @@
 			</div>
 
 			<div class="flex flex-col gap-1">
-				<label class="text-xs" style="color: var(--muted)">Summary</label>
+				<label class="text-xs" style="color: var(--muted)" for="inspector-summary">Summary</label>
 				<textarea
+					id="inspector-summary"
 					class="w-full rounded border px-2 py-1.5 text-sm"
 					rows={2}
 					style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
@@ -106,12 +109,13 @@
 					oninput={(e) => draftSummary = (e.target as HTMLTextAreaElement).value}
 					onblur={() => update('summary_sentence', draftSummary)}
 					placeholder="One-sentence summary"
-				/>
+				></textarea>
 			</div>
 
 			<div class="flex flex-col gap-1">
-				<label class="text-xs" style="color: var(--muted)">Goal</label>
+				<label class="text-xs" style="color: var(--muted)" for="inspector-goal">Goal</label>
 				<textarea
+					id="inspector-goal"
 					class="w-full rounded border px-2 py-1.5 text-sm"
 					rows={2}
 					style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
@@ -119,12 +123,13 @@
 					oninput={(e) => draftGoal = (e.target as HTMLTextAreaElement).value}
 					onblur={() => update('goal', draftGoal)}
 					placeholder="What this scene needs to achieve"
-				/>
+				></textarea>
 			</div>
 
 			<div class="flex flex-col gap-1">
-				<label class="text-xs" style="color: var(--muted)">POV</label>
+				<label class="text-xs" style="color: var(--muted)" for="inspector-pov">POV</label>
 				<select
+					id="inspector-pov"
 					class="w-full rounded border px-2 py-1.5 text-sm"
 					style="background: var(--surface); border-color: var(--border); color: var(--text)"
 					value={scene.pov}
@@ -141,8 +146,9 @@
 			</div>
 
 			<div class="flex flex-col gap-1">
-				<label class="text-xs" style="color: var(--muted)">Notes</label>
+				<label class="text-xs" style="color: var(--muted)" for="inspector-notes">Notes</label>
 				<textarea
+					id="inspector-notes"
 					class="w-full rounded border px-2 py-1.5 text-sm"
 					rows={3}
 					style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
@@ -150,7 +156,7 @@
 					oninput={(e) => draftNotes = (e.target as HTMLTextAreaElement).value}
 					onblur={() => update('notes', draftNotes)}
 					placeholder="Scene notes"
-				/>
+				></textarea>
 			</div>
 		</div>
 	{/if}

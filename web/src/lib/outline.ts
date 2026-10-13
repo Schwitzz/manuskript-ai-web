@@ -53,7 +53,7 @@ function labelIndex(v: string | undefined): string {
 	return v && v !== '0' ? v : '';
 }
 
-export function findItem(items: OutlineItem[], id: number): OutlineItem | null {
+export function findItem(items: readonly OutlineItem[], id: number): OutlineItem | null {
 	for (const i of items) {
 		if (i.id === id) return i;
 		const found = findItem(i.children, id);
@@ -63,7 +63,7 @@ export function findItem(items: OutlineItem[], id: number): OutlineItem | null {
 }
 
 /** Folders from the top down to (and including) the item with this id; [] if it is not found. */
-export function pathTo(items: OutlineItem[], id: number): OutlineItem[] {
+export function pathTo(items: readonly OutlineItem[], id: number): OutlineItem[] {
 	for (const i of items) {
 		if (i.id === id) return [i];
 		const below = pathTo(i.children, id);

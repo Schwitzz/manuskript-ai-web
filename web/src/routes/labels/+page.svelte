@@ -187,7 +187,7 @@ loadData();
 <button class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium"
 style="background: var(--accent); color: var(--accent-text); opacity: {saving ? 0.7 : 1}"
 onclick={saveLabels} disabled={saving}>
-{#if saving}<span class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />{:else if saved}<Check size={14} />{/if}
+{#if saving}<span class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"></span>{:else if saved}<Check size={14} />{/if}
 {saving ? 'Saving...' : 'Save'}
 </button>
 </div>
@@ -220,7 +220,7 @@ style="background: var(--surface); border-color: var(--border); color: var(--tex
 value={editingLabelName}
 oninput={(e) => editingLabelName = (e.target as HTMLInputElement).value}
 onkeydown={(e) => { if (e.key === 'Enter') saveEditLabel(idx); if (e.key === 'Escape') cancelEditLabel(); }}
-autofocus />
+/>
 <input class="h-8 w-12 cursor-pointer rounded border"
 type="color"
 value={editingLabelColor}
@@ -231,7 +231,7 @@ onclick={() => saveEditLabel(idx)}><Check size={16}/></button>
 onclick={cancelEditLabel}><X size={16}/></button>
 {:else}
 <div class="h-4 w-4 rounded-full"
-style="background-color: {label.color}" />
+style="background-color: {label.color}"></div>
 <span class="flex-1 text-sm">{label.name}</span>
 <button class="rounded p-1 text-sm" style="color: var(--muted)"
 onclick={() => startEditLabel(idx)}><Palette size={14}/></button>
@@ -254,7 +254,7 @@ onclick={() => deleteLabel(idx)}><Trash2 size={14}/></button>
 <button class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium"
 style="background: var(--accent); color: var(--accent-text); opacity: {saving ? 0.7 : 1}"
 onclick={saveStatus} disabled={saving}>
-{#if saving}<span class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />{:else if saved}<Check size={14} />{/if}
+{#if saving}<span class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"></span>{:else if saved}<Check size={14} />{/if}
 {saving ? 'Saving...' : 'Save'}
 </button>
 </div>
@@ -283,7 +283,7 @@ style="background: var(--surface); border-color: var(--border); color: var(--tex
 value={editingStatusName}
 oninput={(e) => editingStatusName = (e.target as HTMLInputElement).value}
 onkeydown={(e) => { if (e.key === 'Enter') saveEditStatus(idx); if (e.key === 'Escape') cancelEditStatus(); }}
-autofocus />
+/>
 <button class="rounded p-1 text-sm" style="color: var(--success)"
 onclick={() => saveEditStatus(idx)}><Check size={16}/></button>
 <button class="rounded p-1 text-sm" style="color: var(--muted)"

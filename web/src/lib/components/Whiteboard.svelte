@@ -259,9 +259,12 @@
 <div class="relative h-full w-full overflow-hidden rounded-lg" style="background: var(--bg)">
 	<!-- Error toast -->
 	{#if error}
-		<div class="absolute right-4 top-4 z-50 rounded-lg border p-3 text-sm"
+		<div class="absolute right-4 top-4 z-50 cursor-pointer rounded-lg border p-3 text-sm"
+			role="button"
+			tabindex="0"
 			style="background:var(--surface); border-color:var(--danger); color:var(--danger)"
-			onclick={() => (error = '')}>
+			onclick={() => (error = '')}
+			onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (error = ''); } }}>
 			{error} · click to dismiss
 		</div>
 	{/if}

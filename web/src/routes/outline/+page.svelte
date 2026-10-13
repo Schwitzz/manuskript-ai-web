@@ -404,6 +404,7 @@
 										class="outline-col cursor-pointer px-2 py-1.5 select-none shrink-0"
 										style="width: {col.width}"
 										onclick={() => onSort(col.key)}
+									role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') onSort(col.key); }}
 									>
 										<span class="flex items-center gap-0.5">
 											{col.label}
@@ -421,10 +422,9 @@
 							<div
 								class="outline-row flex items-center border-b transition-colors hover:bg-[color:var(--accent)]/5"
 								data-node={item.id}
-								aria-selected={selectedId === item.id}
+								role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') select(item); }}
 								style="border-color: var(--border)"
-								onclick={() => select(item)}
-							>
+								>
 								{#each COLUMNS as col}
 									{#if visibleCols.has(col.key)}
 										<div
@@ -439,7 +439,8 @@
 													startEditCell(item, col.key === 'summary' ? 'summary_sentence' : 'notes');
 												}
 											}}
-										>
+											role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); } }}>
+
 											{#if col.key === 'name'}
 												{#if item.type === 'folder'}
 													<Folder size={14} style="color:var(--muted)" />
@@ -467,7 +468,7 @@
 												<span class="text-xs" style="color:var(--muted)">{item.words}</span>
 											{:else if col.key === 'label'}
 												{#if item.label}
-													<span class="size-2.5 shrink-0 rounded-full" style="background:{labelColor(labels, item.label)}" aria-hidden></span>
+													<span class="size-2.5 shrink-0 rounded-full" style="background:{labelColor(labels, item.label)}" aria-hidden="true"></span>
 													<span class="text-xs" style="color:var(--muted)">{nameAt(labels, item.label, (l) => l.name)}</span>
 												{:else}
 													<span class="text-xs" style="color:var(--muted)">—</span>
@@ -501,7 +502,7 @@
 															if (e.key === 'Escape') cancelEditCell();
 														}}
 														onclick={(e) => e.stopPropagation()}
-													/>
+													></textarea>
 												{:else}
 													<span class="min-w-0 flex-1 truncate text-sm" style="color:var(--muted)">
 														{item.summary_sentence || '—'}
@@ -525,7 +526,7 @@
 														onfocus={(e) => {
 															const ta = e.currentTarget; ta.select(); ta.scrollIntoView({block:'nearest'});
 														}}
-													/>
+													></textarea>
 												{:else}
 													<span class="min-w-0 flex-1 truncate text-sm" style="color:var(--muted)">
 														{item.notes || '—'}
@@ -640,9 +641,6 @@
 	}
 	.outline-row { cursor: default; }
 	.outline-row:hover { cursor: pointer; }
-	.outline-row[aria-selected] { background: var(--accent); color: var(--accent-text); }
-	.outline-row[aria-selected] span[style*="--muted"],
-	.outline-row[aria-selected] span[style*="var(--muted)"] { color: var(--accent-text) !important; opacity: .8; }
 
 	/* Stacked rows on phone (narrow screens) */
 	@media (max-width: 768px) {
@@ -662,7 +660,6 @@
 			border-bottom: 1px solid var(--border);
 		}
 		.outline-cell > span:first-child,
-		.outline-cell > button:first-child,
 		.outline-cell > input:first-child,
 		.outline-cell > textarea:first-child {
 			font-weight: 600;

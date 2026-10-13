@@ -30,9 +30,9 @@
 	});
 
 	let editing = $state(false);
-	let title = $state(d.title);
+	let title = $state('');
 
-	$effect(() => { title = d.title; });
+	$effect(() => { title = (data as any).title; });
 
 	function saveTitle() {
 		if (editing) {

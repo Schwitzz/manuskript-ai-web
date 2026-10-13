@@ -393,18 +393,18 @@ let strokeDashoffset = $derived(circumference - (progressPct / 100) * circumfere
 <!-- Status bar -->
 <div class="flex items-center gap-2 border-b px-3 py-1 text-xs" style="border-color: var(--border); background: var(--surface)">
 {#if saving}
-<span class="h-2 w-2 animate-pulse rounded-full" style="background: var(--warning)" />
+<span class="h-2 w-2 animate-pulse rounded-full" style="background: var(--warning)"></span>
 <span style="color: var(--muted)">Saving...</span>
 {:else if saved}
-<span class="h-2 w-2 rounded-full" style="background: var(--success)" />
+<span class="h-2 w-2 rounded-full" style="background: var(--success)"></span>
 <span style="color: var(--muted)">Saved{lastSaved ? ' ' + lastSaved.toLocaleTimeString() : ''}</span>
 {:else}
-<span class="h-2 w-2 rounded-full" style="background: var(--danger)" />
+<span class="h-2 w-2 rounded-full" style="background: var(--danger)"></span>
 <span style="color: var(--danger)">Unsaved changes</span>
 {/if}
-<div class="h-3 w-px" style="background: var(--border)" />
+<div class="h-3 w-px" style="background: var(--border)"></div>
 <span style="color: var(--muted)">{wordCount.toLocaleString()} words</span>
-<div class="h-3 w-px" style="background: var(--border)" />
+<div class="h-3 w-px" style="background: var(--border)"></div>
 <div class="relative flex h-7 w-7 items-center justify-center">
 <svg class="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 48 48">
 <circle cx="24" cy="24" r="22" fill="none" stroke="var(--border)" stroke-width="3" />
@@ -413,7 +413,7 @@ stroke-dasharray={circumference} stroke-dashoffset={strokeDashoffset} class="tra
 </svg>
 <span class="text-[9px] font-medium" style="color: var(--muted)">{sessionCount}/{sessionGoal}</span>
 </div>
-<div class="flex-1" />
+<div class="flex-1"></div>
 <button class="tap rounded p-1" type="button" onclick={toggleTypewriter}>
 {#if showTypewriter}<Eye size={16} style="color: var(--accent)" />{:else}<Eye size={16} style="color: var(--muted)" />{/if}
 </button>
@@ -435,37 +435,37 @@ stroke-dasharray={circumference} stroke-dashoffset={strokeDashoffset} class="tra
 <div class="flex flex-wrap items-center gap-0.5 border-b px-2 py-1.5" style="border-color: var(--border); background: var(--surface)" role="toolbar">
 <button class="tap rounded p-1.5" type="button" onclick={() => { undo({ state: view!.state, dispatch: view!.dispatch.bind(view!)}); }}><Undo2 size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => { redo({ state: view!.state, dispatch: view!.dispatch.bind(view!)}); }}><Redo2 size={18} style="color: var(--muted)" /></button>
-<div class="h-5 w-px mx-1" style="background: var(--border)" />
+<div class="h-5 w-px mx-1" style="background: var(--border)"></div>
 <button class="tap rounded p-1.5" type="button" onclick={() => insertBlock('h1')}><Heading1 size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => insertBlock('h2')}><Heading2 size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => insertBlock('h3')}><Heading3 size={18} style="color: var(--muted)" /></button>
-<div class="h-5 w-px mx-1" style="background: var(--border)" />
+<div class="h-5 w-px mx-1" style="background: var(--border)"></div>
 <button class="tap rounded p-1.5" type="button" onclick={() => insertMarkdown('**', '**')}><Bold size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => insertMarkdown('*', '*')}><Italic size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => insertMarkdown('~~', '~~')}><Strikethrough size={18} style="color: var(--muted)" /></button>
-<div class="h-5 w-px mx-1" style="background: var(--border)" />
+<div class="h-5 w-px mx-1" style="background: var(--border)"></div>
 <button class="tap rounded p-1.5" type="button" onclick={() => insertBlock('quote')}><Quote size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => insertBlock('list')}><List size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => insertBlock('ordered')}><ListOrdered size={18} style="color: var(--muted)" /></button>
-<div class="h-5 w-px mx-1" style="background: var(--border)" />
+<div class="h-5 w-px mx-1" style="background: var(--border)"></div>
 <button class="tap rounded p-1.5" type="button" onclick={() => alignText('left')}><AlignLeft size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => alignText('center')}><AlignCenter size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => alignText('right')}><AlignRight size={18} style="color: var(--muted)" /></button>
-<div class="h-5 w-px mx-1" style="background: var(--border)" />
+<div class="h-5 w-px mx-1" style="background: var(--border)"></div>
 <button class="tap rounded p-1.5" type="button" onclick={() => { searchOpen = !searchOpen; }}><Search size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => insertLink()}><LinkIcon size={18} style="color: var(--muted)" /></button>
-<div class="h-5 w-px mx-1" style="background: var(--border)" />
+<div class="h-5 w-px mx-1" style="background: var(--border)"></div>
 <!-- AI editor extras -->
 <button class="tap rounded p-1.5" type="button" onclick={() => insertAIReply()} title="Insert AI reply at cursor"><Sparkles size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => askAboutSelection()} title="Ask AI about selection"><Type size={18} style="color: var(--muted)" /></button>
 <button class="tap rounded p-1.5" type="button" onclick={() => { ai.panelOpen = !ai.panelOpen; }} title="AI Chat"><Sparkles size={18} style="color: {ai.panelOpen ? 'var(--accent)' : 'var(--muted)'}" /></button>
 <button class="tap rounded p-1.5 disabled:opacity-50" type="button" disabled={saving} onclick={forceSave}>
-{#if saving}<span class="h-4 w-4 animate-spin rounded-full" style="border: 2px solid var(--muted); border-top-color: transparent" />{:else}<Save size={18} style="color: var(--muted)" />{/if}
+{#if saving}<span class="h-4 w-4 animate-spin rounded-full" style="border: 2px solid var(--muted); border-top-color: transparent"></span>{:else}<Save size={18} style="color: var(--muted)" />{/if}
 </button>
 </div>
 {/if}
 <!-- Editor -->
-<div class="flex-1 overflow-hidden" id="editor-container" style="background: var(--editor)" />
+<div class="flex-1 overflow-hidden" id="editor-container" style="background: var(--editor)"></div>
 <!-- Inspector Panel -->
 {#if inspectorOpen && sceneInfo && currentProject}
 <InspectorPanel scene={sceneInfo} {labels} {statusList} project={currentProject} />

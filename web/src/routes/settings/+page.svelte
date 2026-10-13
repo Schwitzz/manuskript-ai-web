@@ -140,7 +140,7 @@ Summary
 <button class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium"
 style="background: var(--accent); color: var(--accent-text); opacity: {saving ? 0.7 : 1}"
 onclick={saveInfo} disabled={saving}>
-{#if saving}<span class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />{:else if saved}<Check size={14} />{/if}
+{#if saving}<span class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"></span>{:else if saved}<Check size={14} />{/if}
 {saving ? 'Saving...' : 'Save'}
 </button>
 </div>
@@ -148,12 +148,12 @@ onclick={saveInfo} disabled={saving}>
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 {#each generalFields as field}
 <div class="flex flex-col gap-1">
-<label class="text-xs font-medium" style="color: var(--muted)">{field.label}</label>
-<input class="rounded-lg border px-3 py-2 text-sm"
+<label class="text-xs font-medium" style="color: var(--muted)" for={`info-${field.key}`}>{field.label}</label>
+<input id={`info-${field.key}`} class="rounded-lg border px-3 py-2 text-sm"
 style="background: var(--surface); border-color: var(--border); color: var(--text)"
 value={bookInfo[field.key] || ''}
 oninput={(e) => updateField(field.key, (e.target as HTMLInputElement).value)}
-placeholder={field.placeholder} />
+placeholder={field.placeholder}>
 </div>
 {/each}
 </div>
@@ -170,7 +170,7 @@ placeholder={field.placeholder} />
 <button class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium"
 style="background: var(--accent); color: var(--accent-text); opacity: {saving ? 0.7 : 1}"
 onclick={saveSummary} disabled={saving}>
-{#if saving}<span class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />{:else if saved}<Check size={14} />{/if}
+{#if saving}<span class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"></span>{:else if saved}<Check size={14} />{/if}
 {saving ? 'Saving...' : 'Save'}
 </button>
 </div>
@@ -178,13 +178,13 @@ onclick={saveSummary} disabled={saving}>
 <div class="flex flex-col gap-4">
 {#each summaryFields as field}
 <div class="flex flex-col gap-1">
-<label class="text-xs font-medium" style="color: var(--muted)">{field.label}</label>
-<textarea class="w-full rounded-lg border px-3 py-2 text-sm"
+<label class="text-xs font-medium" style="color: var(--muted)" for={`snowflake-${field.key}`}>{field.label}</label>
+<textarea id={`snowflake-${field.key}`} class="w-full rounded-lg border px-3 py-2 text-sm"
 rows={field.key === 'full' ? 6 : field.key === 'page' ? 4 : 2}
 style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
 value={snowflakeSummary[field.key] || ''}
 oninput={(e) => updateSummaryField(field.key, (e.target as HTMLTextAreaElement).value)}
-placeholder={field.placeholder} />
+placeholder={field.placeholder}></textarea>
 </div>
 {/each}
 </div>

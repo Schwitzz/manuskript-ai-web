@@ -210,7 +210,8 @@
 				{#each filtered() as p (p.id)}
 					<div class="flex cursor-pointer items-center gap-3 rounded-lg border p-3"
 						style="border-color: {selectedId === p.id ? 'var(--accent)' : 'var(--border)'}"
-						onclick={() => selectPlot(p.id, p)}>
+						onclick={() => selectPlot(p.id, p)}
+							role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') selectPlot(p.id, p); }}>
 						<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
 							style="background: {p.importance === '2' ? '#dc2626' : p.importance === '1' ? '#d97706' : '#6b7280'}">
 							{importanceBadge(p.importance)}
@@ -243,16 +244,16 @@
 				</div>
 				<div class="grid grid-cols-2 gap-3">
 					<div class="col-span-2 flex flex-col gap-1">
-						<label class="text-xs" style="color: var(--muted)">Name *</label>
-						<input class="rounded-lg border px-3 py-2 text-sm"
+						<label class="text-xs" style="color: var(--muted)" for="plot-name">Name *</label>
+						<input id="plot-name" class="rounded-lg border px-3 py-2 text-sm"
 							style="background: var(--surface); border-color: var(--border); color: var(--text)"
 							value={allDraft?.name}
 							oninput={(e) => allDraft!.name = (e.target as HTMLInputElement).value}
 							placeholder="Plot name" />
 					</div>
 					<div class="flex flex-col gap-1">
-						<label class="text-xs" style="color: var(--muted)">Importance</label>
-						<select class="rounded-lg border px-2 py-2 text-sm"
+						<label class="text-xs" style="color: var(--muted)" for="plot-importance">Importance</label>
+						<select id="plot-importance" class="rounded-lg border px-2 py-2 text-sm"
 							style="background: var(--surface); border-color: var(--border)"
 							value={allDraft?.importance}
 							onchange={(e) => allDraft!.importance = (e.target as HTMLSelectElement).value}>
@@ -262,8 +263,8 @@
 						</select>
 					</div>
 					<div class="flex flex-col gap-1">
-						<label class="text-xs" style="color: var(--muted)">Characters</label>
-						<select multiple class="rounded-lg border px-2 py-2 text-sm"
+						<label class="text-xs" style="color: var(--muted)" for="plot-characters">Characters</label>
+						<select id="plot-characters" multiple class="rounded-lg border px-2 py-2 text-sm"
 							style="background: var(--surface); border-color: var(--border)"
 							onchange={(e) => {
 								allDraft!.characters = Array.from((e.target as HTMLSelectElement).selectedOptions).map((o: HTMLOptionElement) => Number(o.value));
@@ -275,32 +276,32 @@
 					</div>
 				</div>
 				<div class="flex flex-col gap-1">
-					<label class="text-xs" style="color: var(--muted)">Description</label>
-					<textarea class="w-full rounded-lg border px-3 py-2 text-sm" rows={3}
+					<label class="text-xs" style="color: var(--muted)" for="plot-description">Description</label>
+					<textarea id="plot-description" class="w-full rounded-lg border px-3 py-2 text-sm" rows={3}
 						style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
 						value={allDraft?.description}
 						oninput={(e) => allDraft!.description = (e.target as HTMLTextAreaElement).value}
-							placeholder="What is this plot about?" />
+							placeholder="What is this plot about?"></textarea>
 				</div>
 				<div class="flex flex-col gap-1">
-					<label class="text-xs" style="color: var(--muted)">Result</label>
-					<textarea class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
+					<label class="text-xs" style="color: var(--muted)" for="plot-result">Result</label>
+					<textarea id="plot-result" class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
 						style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
 						value={allDraft?.result}
 						oninput={(e) => allDraft!.result = (e.target as HTMLTextAreaElement).value}
-							placeholder="What results from this plot?" />
+							placeholder="What results from this plot?"></textarea>
 				</div>
 				<div class="flex flex-col gap-1">
-					<label class="text-xs" style="color: var(--muted)">Summary</label>
-					<textarea class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
+					<label class="text-xs" style="color: var(--muted)" for="plot-summary">Summary</label>
+					<textarea id="plot-summary" class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
 						style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
 						value={allDraft?.summary}
 						oninput={(e) => allDraft!.summary = (e.target as HTMLTextAreaElement).value}
-							placeholder="Brief summary" />
+							placeholder="Brief summary"></textarea>
 				</div>
 				<div class="flex flex-col gap-2">
 					<div class="flex items-center justify-between">
-						<label class="text-xs font-medium" style="color: var(--muted)">Resolution Steps</label>
+						<label class="text-xs font-medium" style="color: var(--muted)" for="plot-steps">Resolution Steps</label>
 						<button class="text-xs rounded px-2 py-1"
 							style="background: var(--surface); border: 1px solid var(--border); color: var(--text)"
 							onclick={startAddStep}>+ Add Step</button>
@@ -343,7 +344,7 @@
 								style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
 								value={currentStep.summary}
 								oninput={(e) => currentStep.summary = (e.target as HTMLTextAreaElement).value}
-								placeholder="Summary" />
+								placeholder="Summary"></textarea>
 						</div>
 						<div class="mt-2 flex gap-2">
 							<button class="rounded px-3 py-1 text-sm" style="background: var(--accent); color: var(--accent-text)"

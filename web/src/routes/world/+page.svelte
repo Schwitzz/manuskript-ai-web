@@ -223,36 +223,36 @@ onclick={() => { showForm = false; draft = null; editingId = null; }}>
 <p class="text-xs" style="color: var(--muted)">Child of: {findItemById(items, parentIdOfForm)?.name}</p>
 {/if}
 <div class="flex flex-col gap-1">
-<label class="text-xs" style="color: var(--muted)">Name *</label>
-<input class="rounded-lg border px-3 py-2 text-sm"
+<label for="name" class="text-xs" style="color: var(--muted)">Name *</label>
+<input id="name" class="rounded-lg border px-3 py-2 text-sm"
 style="background: var(--surface); border-color: var(--border); color: var(--text)"
 value={draft?.name}
 oninput={(e) => draft!.name = (e.target as HTMLInputElement).value}
 placeholder="Item name" />
 </div>
 <div class="flex flex-col gap-1">
-<label class="text-xs" style="color: var(--muted)">Description</label>
-<textarea class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
+<label class="text-xs" style="color: var(--muted)" for="world-description">Description</label>
+<textarea id="world-description" class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
 style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
 value={draft?.description}
 oninput={(e) => draft!.description = (e.target as HTMLTextAreaElement).value}
-placeholder="What is this?" />
+placeholder="What is this?"></textarea>
 </div>
 <div class="flex flex-col gap-1">
-<label class="text-xs" style="color: var(--muted)">Passion</label>
-<textarea class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
+<label class="text-xs" style="color: var(--muted)" for="world-passion">Passion</label>
+<textarea id="world-passion" class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
 style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
 value={draft?.passion}
 oninput={(e) => draft!.passion = (e.target as HTMLTextAreaElement).value}
-placeholder="What do they love?" />
+placeholder="What do they love?"></textarea>
 </div>
 <div class="flex flex-col gap-1">
-<label class="text-xs" style="color: var(--muted)">Conflict</label>
-<textarea class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
+<label class="text-xs" style="color: var(--muted)" for="world-conflict">Conflict</label>
+<textarea id="world-conflict" class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
 style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
 value={draft?.conflict}
 oninput={(e) => draft!.conflict = (e.target as HTMLTextAreaElement).value}
-placeholder="What opposes them?" />
+placeholder="What opposes them?"></textarea>
 </div>
 <div class="flex gap-2">
 <button class="flex-1 rounded-lg px-4 py-2 text-sm font-medium"

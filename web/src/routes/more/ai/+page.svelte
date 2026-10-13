@@ -172,10 +172,11 @@ disabled={saving}
 
 <div class="flex flex-col gap-3">
 <div>
-<label class="mb-1 block text-xs font-medium" style="color: var(--muted)">
+<label for="api_key" class="mb-1 block text-xs font-medium" style="color: var(--muted)">
 API Key
 </label>
 <input
+id="api_key"
 type="password"
 bind:value={setting.api_key}
 class="w-full rounded px-3 py-2 text-sm"
@@ -186,10 +187,11 @@ placeholder="Enter your API key..."
 
 <div class="grid grid-cols-2 gap-3">
 <div>
-<label class="mb-1 block text-xs font-medium" style="color: var(--muted)">
+<label for="endpoint" class="mb-1 block text-xs font-medium" style="color: var(--muted)">
 Custom Endpoint
 </label>
 <input
+id="endpoint"
 type="url"
 bind:value={setting.endpoint}
 class="w-full rounded px-3 py-2 text-sm"
@@ -198,10 +200,11 @@ placeholder="https://..."
 />
 </div>
 <div>
-<label class="mb-1 block text-xs font-medium" style="color: var(--muted)">
+<label for="context-size" class="mb-1 block text-xs font-medium" style="color: var(--muted)">
 Context Size
 </label>
 <input
+id="context-size"
 type="number"
 bind:value={setting.context_size}
 class="w-full rounded px-3 py-2 text-sm"
@@ -215,10 +218,11 @@ step={512}
 
 <div class="grid grid-cols-2 gap-3">
 <div>
-<label class="mb-1 block text-xs font-medium" style="color: var(--muted)">
+<label for="temperature" class="mb-1 block text-xs font-medium" style="color: var(--muted)">
 Temperature
 </label>
 <input
+id="temperature"
 type="range"
 bind:value={setting.temperature}
 class="w-full"
@@ -229,14 +233,14 @@ step={0.1}
 <span class="text-xs" style="color: var(--muted)">{setting.temperature}</span>
 </div>
 <div>
-<label class="mb-1 block text-xs font-medium" style="color: var(--muted)">
+<label for="thinking" class="mb-1 block text-xs font-medium" style="color: var(--muted)">
 Thinking Level
 </label>
 <select
+id="thinking"
 bind:value={setting.thinking}
 class="w-full rounded px-3 py-2 text-sm"
-style="border-color: var(--border); background: var(--surface); color: var(--fg)"
->
+style="border-color: var(--border); background: var(--surface); color: var(--fg)">
 <option value="Off">Off</option>
 <option value="low">Low</option>
 <option value="med">Medium</option>
@@ -289,8 +293,8 @@ onclick={cancelEditAgent}
 bind:value={editingPrompt}
 class="w-full rounded px-3 py-2 text-sm"
 rows={6}
-style="border-color: var(--border); background: var(--surface); color: var(--fg); resize: vertical"
-/>
+style="border-color: var(--border); background: var(--surface); color: var(--fg); resize: vertical">
+</textarea>
 </div>
 {:else}
 <!-- View mode -->
@@ -329,10 +333,14 @@ disabled={savingAgent !== null}
 <div class="flex flex-col gap-3">
 {#each Object.entries(ai.contextSources) as [key, value]}
 <div class="flex items-center justify-between">
-<label class="text-sm" style="color: var(--fg)">
+<label class="text-sm" style="color: var(--fg)" for={`ctx-source-${key}`}>
 {key.charAt(0).toUpperCase() + key.slice(1)}
 </label>
 <button
+aria-label={`Toggle ${key.charAt(0).toUpperCase() + key.slice(1)}`}
+id={`ctx-source-${key}`}
+role="switch"
+aria-checked={value}
 class="relative h-6 w-11 rounded-full transition-colors"
 class:bg-green-500={value}
 class:bg-gray-600={!value}
@@ -342,16 +350,17 @@ onclick={() => ai.contextSources = { ...ai.contextSources, [key]: !value }}
 class="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform"
 class:translate-x-5={value}
 class:translate-x-0.5={!value}
-/>
+></span>
 </button>
 </div>
 {/each}
 
 <div>
-<label class="mb-1 block text-sm font-medium" style="color: var(--muted)">
+<label for="ctx-max-tokens" class="mb-1 block text-sm font-medium" style="color: var(--muted)">
 Max Context Tokens: {ai.contextMaxTokens}
 </label>
 <input
+id="ctx-max-tokens"
 type="range"
 bind:value={ai.contextMaxTokens}
 class="w-full"
@@ -388,7 +397,10 @@ No chats yet. Create a new chat to get started.
 {#each ai.chats as chat}
 {#if renamingChat === chat.id}
 <div class="group flex items-center gap-2 rounded-lg p-3 transition-colors bg-primary/10"
-onclick={(e) => e.stopPropagation()}>
+onclick={(e) => e.stopPropagation()}
+role="button"
+tabindex="0"
+onkeydown={(e) => { if (e.key === 'Enter') confirmRename(); }}>
 <MessageSquare size={16} style="color: var(--muted)" />
 <div class="flex-1 flex gap-2">
 <input
@@ -400,7 +412,6 @@ onclick={(e) => e.stopPropagation()}>
 		if (e.key === 'Enter') confirmRename();
 		if (e.key === 'Escape') cancelRename();
 	}}
-	autofocus
 />
 <button class="rounded p-1" style="color: var(--success); background: transparent"
 	onclick={confirmRename}><Pencil size={14} /></button>
@@ -409,7 +420,8 @@ onclick={(e) => e.stopPropagation()}>
 </div>
 </div>
 {:else}
-<div class="group flex items-center gap-2 rounded-lg p-3 transition-colors {ai.chatId === chat.id ? "bg-primary/10" : ""}" style="cursor: pointer" onclick={() => ai.loadChat(chat.id)}>
+<div class="group flex items-center gap-2 rounded-lg p-3 transition-colors {ai.chatId === chat.id ? "bg-primary/10" : ""}" style="cursor: pointer" onclick={() => ai.loadChat(chat.id)}
+role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') ai.loadChat(chat.id); }}>
 <MessageSquare size={16} style="color: var(--muted)" />
 <div class="flex-1">
 <div class="text-sm font-medium">{chat.title}</div>

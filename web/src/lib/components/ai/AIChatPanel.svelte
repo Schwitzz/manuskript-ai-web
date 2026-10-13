@@ -170,7 +170,7 @@
 				class="min-h-[2.5rem] max-h-32 w-full resize-none rounded border p-2 text-sm"
 				style="border-color: var(--border); background: var(--surface)"
 				rows={1}
-			/>
+			></textarea>
 			<button
 				class="rounded p-2"
 				class:disabled={ai.streaming.isStreaming || !input.trim()}

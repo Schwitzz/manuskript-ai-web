@@ -198,7 +198,10 @@ finally { loading = false; }
 			{#each filteredCharacters() as c (c.id)}
 				<div class="flex cursor-pointer items-center gap-3 rounded-lg border p-3"
 					style="border-color: {selectedId === c.id ? 'var(--accent)' : 'var(--border)'}"
-					onclick={() => showInspector(c.id, c)}>
+					onclick={() => showInspector(c.id, c)}
+					role="button"
+					tabindex="0"
+					onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showInspector(c.id, c); } }}>
 					<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
 						style="background: {c.color}">{initials(c.name)}</div>
 					<div class="flex-1 min-w-0">
@@ -224,16 +227,17 @@ finally { loading = false; }
 			</div>
 			<div class="grid grid-cols-2 gap-3">
 				<div class="col-span-2 flex flex-col gap-1">
-					<label class="text-xs" style="color: var(--muted)">Name *</label>
+					<label class="text-xs" style="color: var(--muted)" for="char-name">Name *</label>
 					<input class="rounded-lg border px-3 py-2 text-sm"
+						id="char-name"
 						style="background: var(--surface); border-color: var(--border); color: var(--text)"
 						value={draft!.name}
 						oninput={(e) => draft!.name = (e.target as HTMLInputElement).value}
 						placeholder="Character name" />
 				</div>
 				<div class="flex flex-col gap-1">
-					<label class="text-xs" style="color: var(--muted)">Importance</label>
-					<select class="rounded-lg border px-2 py-2 text-sm"
+					<label class="text-xs" style="color: var(--muted)" for="char-importance">Importance</label>
+					<select id="char-importance" class="rounded-lg border px-2 py-2 text-sm"
 						style="background: var(--surface); border-color: var(--border)"
 						value={draft!.importance}
 						onchange={(e) => draft!.importance = (e.target as HTMLSelectElement).value}>
@@ -243,8 +247,8 @@ finally { loading = false; }
 					</select>
 				</div>
 				<div class="flex flex-col gap-1">
-					<label class="text-xs" style="color: var(--muted)">Color</label>
-					<input class="h-10 w-full cursor-pointer rounded-lg border px-1"
+					<label class="text-xs" style="color: var(--muted)" for="char-color">Color</label>
+					<input id="char-color" class="h-10 w-full cursor-pointer rounded-lg border px-1"
 						type="color"
 						value={draft!.color}
 						oninput={(e) => draft!.color = (e.target as HTMLInputElement).value} />
@@ -253,33 +257,33 @@ finally { loading = false; }
 
 			{#each ['motivation','goal','conflict','epiphany'] as field}
 				<div class="flex flex-col gap-1">
-					<label class="text-xs" style="color: var(--muted)">{field.charAt(0).toUpperCase() + field.slice(1)}</label>
-					<textarea class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
+					<label class="text-xs" style="color: var(--muted)" for={`char-${field}`}>{field.charAt(0).toUpperCase() + field.slice(1)}</label>
+					<textarea id={`char-${field}`} class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
 						style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
 						value={draft![field as keyof Character] as string}
 						oninput={(e) => { const t = e.target as HTMLTextAreaElement; (draft! as any)[field] = t.value; }}
-						placeholder={`Enter ${field}`} />
+						placeholder={`Enter ${field}`}></textarea>
 				</div>
 			{/each}
 
 			{#each ['summary_sentence','summary_para','summary_full'] as field}
 				<div class="flex flex-col gap-1">
-					<label class="text-xs" style="color: var(--muted)">{field.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</label>
-					<textarea class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
+					<label class="text-xs" style="color: var(--muted)" for={`char-${field}`}>{field.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</label>
+					<textarea id={`char-${field}`} class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
 						style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
 						value={draft![field as keyof Character] as string}
 						oninput={(e) => { const t = e.target as HTMLTextAreaElement; (draft! as any)[field] = t.value; }}
-						placeholder={`Enter ${field}`} />
+						placeholder={`Enter ${field}`}></textarea>
 				</div>
 			{/each}
 
 			<div class="flex flex-col gap-1">
-				<label class="text-xs" style="color: var(--muted)">Notes</label>
-				<textarea class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
+				<label class="text-xs" style="color: var(--muted)" for="char-notes">Notes</label>
+				<textarea id="char-notes" class="w-full rounded-lg border px-3 py-2 text-sm" rows={2}
 					style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
 					value={draft!.notes}
 					oninput={(e) => draft!.notes = (e.target as HTMLTextAreaElement).value}
-					placeholder="Additional notes" />
+					placeholder="Additional notes"></textarea>
 			</div>
 
 			<div class="flex gap-2">
