@@ -1,5 +1,5 @@
 /**
- * Pure helpers for drag-and-drop reordering (corkboard grid and outline tree).
+ * Pure helpers for drag-and-drop reordering (outline tree).
  *
  * SortableJS reports `oldDraggableIndex` / `newDraggableIndex` — the index of
  * the dragged element before and after the drop, counting only draggable
@@ -10,14 +10,6 @@
  */
 
 import { findItem, type OutlineItem } from './outline.ts';
-
-/** A new array with the element at `from` moved to its final position `to`. */
-export function reorder<T>(items: readonly T[], from: number, to: number): T[] {
-	const next = [...items];
-	const [moved] = next.splice(from, 1);
-	next.splice(to, 0, moved);
-	return next;
-}
 
 /**
  * The `position` to send to the move endpoint, given an item's old and new

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inSubtree, moveItem, reorder, sameParentPosition } from './dnd.ts';
+import { inSubtree, moveItem, sameParentPosition } from './dnd.ts';
 import { toItems, type OutlineItem } from './outline.ts';
 import type { OutlineItemOut } from './api-types.ts';
 
@@ -25,20 +25,6 @@ const treeOut: OutlineItemOut[] = [
 function tree(): OutlineItem[] {
 	return toItems(treeOut);
 }
-
-describe('reorder', () => {
-	it('moves an element to its final position', () => {
-		const list = ['A', 'B', 'C', 'D'];
-		expect(reorder(list, 0, 2)).toEqual(['B', 'C', 'A', 'D']);
-		expect(reorder(list, 2, 0)).toEqual(['C', 'A', 'B', 'D']);
-		expect(reorder(list, 3, 1)).toEqual(['A', 'D', 'B', 'C']);
-	});
-
-	it('returns an equivalent array for a no-op move', () => {
-		const list = ['A', 'B'];
-		expect(reorder(list, 1, 1)).toEqual(['A', 'B']);
-	});
-});
 
 describe('sameParentPosition', () => {
 	it('maps a final index to the server\'s after-detach insertion index', () => {
