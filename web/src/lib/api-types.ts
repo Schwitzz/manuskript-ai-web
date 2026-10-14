@@ -137,6 +137,7 @@ export interface Fields {
 	summary_sentence?: string | null;
 	summary_full?: string | null;
 	notes?: string | null;
+	associated_notes?: string | null;
 	goal?: string | null;
 }
 

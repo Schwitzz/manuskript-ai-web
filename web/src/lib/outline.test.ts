@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OutlineItemOut } from './api-types.ts';
-import { firstScene, flatten, labelColor, nameAt, pathTo, toItems } from './outline.ts';
+import { firstScene, flatten, labelColor, nameAt, parseAssociatedNotes, pathTo, toItems } from './outline.ts';
 
 const tree: OutlineItemOut[] = [
 	{
@@ -63,5 +63,20 @@ describe('label lookups', () => {
 		expect(labelColor(labels, '')).toBe('');
 		expect(labelColor(labels, '0')).toBe('');
 		expect(labelColor(labels, '9')).toBe('');
+	});
+});
+
+describe('parseAssociatedNotes', () => {
+	it('parses valid notes and caps text at 2000 characters', () => {
+		const raw = JSON.stringify([{ id: 'n1', title: 'Clue', text: 'x'.repeat(2500) }]);
+		const notes = parseAssociatedNotes(raw);
+		expect(notes).toHaveLength(1);
+		expect(notes[0].title).toBe('Clue');
+		expect(notes[0].text).toHaveLength(2000);
+	});
+
+	it('returns empty array on missing or invalid JSON', () => {
+		expect(parseAssociatedNotes(undefined)).toEqual([]);
+		expect(parseAssociatedNotes('not-json')).toEqual([]);
 	});
 });

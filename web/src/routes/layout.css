@@ -26,6 +26,13 @@ body {
 	min-height: 100%;
 }
 
+/* Whiteboard: make the canvas fill the AppShell content area. */
+.whiteboard-page {
+	flex: 1;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+}
+
 /* Touch targets of at least 44px everywhere. */
 button,
 a.tap,

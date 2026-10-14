@@ -8,7 +8,23 @@ import { dirname, resolve } from 'node:path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const API_URL = 'http://127.0.0.1:8765';
+
 export default defineConfig({
+	server: {
+		// Proxy API requests to the backend during development.
+		proxy: {
+			'/api': API_URL,
+			'/auth': API_URL,
+		}
+	},
+	define: {
+		// Production builds use relative paths (empty string) so the
+		// API calls go to the same origin that serves the static files.
+		'__API_BASE__': process.env.NODE_ENV === 'production'
+			? JSON.stringify('')
+			: JSON.stringify(API_URL),
+	},
 	resolve: {
 		alias: {
 			'#lib': resolve(__dirname, './src/lib'),

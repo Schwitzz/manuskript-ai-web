@@ -52,18 +52,32 @@ test('create a project, open it in the editor, and use the outline', async ({ pa
 
 	// Label and status are stored as list positions (what desktop Manuskript reads).
 	await page.getByRole('treeitem', { name: /Chapter 1/ }).click();
-	await page.getByRole('button', { name: 'Scene' }).click();
+	await page.getByRole('button', { name: 'Scene', exact: true }).click();
 	await page.getByLabel('Status').selectOption({ label: 'First draft' });
 	await expect(page.getByRole('alert')).toHaveCount(0);
 	const outline = await page.request.get('/api/projects/novel/outline');
 	const chapter = (await outline.json()).items[0].children[0];
 	expect(chapter.meta).toMatchObject({ label: '4', status: '2' });
 
+	// Add a Note associated with the highlighted Chapter 1 and verify it shows up.
+	await page.getByRole('button', { name: 'Add item' }).click();
+	await expect(page.getByRole('button', { name: 'Add folder' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Add chapter' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Add scene' })).toBeVisible();
+	await page.getByRole('button', { name: 'Add note' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Add note' });
+	await dialog.getByLabel('Title').fill('Plot clue');
+	await dialog.getByLabel('Note', { exact: true }).fill('The butler left a muddy footprint.');
+	await dialog.getByRole('button', { name: 'Add note' }).click();
+	await expect(page.getByText('Plot clue').first()).toBeVisible();
+	await expect(page.getByText(/muddy footprint/).first()).toBeVisible();
+
 	// ...and survive a reload.
 	await page.reload();
 	await page.getByRole('treeitem', { name: /Chapter 1/ }).click();
-	await expect(page.getByRole('button', { name: 'Scene' })).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.getByRole('button', { name: 'Scene', exact: true })).toHaveAttribute('aria-pressed', 'true');
 	await expect(page.getByLabel('Status')).toHaveValue('2');
+	await expect(page.getByText('Plot clue').first()).toBeVisible();
 	await page.screenshot({ path: `screenshots/outline-${info.project.name}.png` });
 
 	// "Open in editor" lands on that scene with its text.
@@ -72,33 +86,36 @@ test('create a project, open it in the editor, and use the outline', async ({ pa
 	await expect(page.locator('.cm-content')).toContainText('dark and stormy night');
 });
 
-test('story: add scenes, reorder, open, and delete', async ({ page }) => {
+test('whiteboard: add nodes to the canvas, link them, and keep them after a reload', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('msk_project', 'novel'));
 	await login(page);
-	await nav(page, 'Story');
+	await nav(page, 'Board');
 
-	// Page renders with an Add button; add a scene.
-	await page.getByRole('button', { name: 'Add' }).click();
-	await page.getByLabel('New item title').fill('Second');
-	await page.getByRole('button', { name: 'Add', exact: true }).click();
-	await expect(page.getByText('Second')).toBeVisible();
+	// The toolbar and canvas hydrate on the client (SvelteFlow), so wait for a
+	// toolbar control before touching the canvas.
+	await expect(page.getByTitle('Add node')).toBeVisible({ timeout: 10_000 });
 
-	// The server reflects the new scene.
-	const items = (await (await page.request.get('/api/projects/novel/outline')).json()).items;
-	expect(items[0].children.map((c: { title: string }) => c.title)).toContain('Second');
+	// Drop two shapes from the add-node menu onto the canvas.
+	await page.getByTitle('Add node').click();
+	await page.getByRole('button', { name: 'Shape', exact: true }).click();
+	await expect(page.locator('.svelte-flow__node')).toHaveCount(1);
+	await expect(page.locator('.svelte-flow__node')).toContainText('Shape');
 
-	// Select a scene and use the action bar to move it.
-	await page.getByRole('button', { name: /^Scene 3$/ }).click();
-	// The action bar should appear at the bottom.
-	await expect(page.locator('.sticky.bottom-0')).toBeVisible();
-	await expect(page.getByRole('button', { title: 'Move earlier' })).toBeVisible();
-	await expect(page.getByRole('button', { title: 'Move later' })).toBeVisible();
+	await page.getByTitle('Add node').click();
+	await page.getByRole('button', { name: 'Circle', exact: true }).click();
+	await expect(page.locator('.svelte-flow__node')).toHaveCount(2);
 
-	// Rename the scene.
-	await page.getByRole('button', { title: 'Rename' }).click();
-	await page.getByLabel('Rename scene').fill('Renamed Scene');
-	await page.keyboard.press('Enter');
-	await expect(page.getByText('Renamed Scene')).toBeVisible();
+	// Link the two nodes using Connection mode.
+	await page.getByTitle('Connection mode').click();
+	await page.locator('.svelte-flow__node').nth(0).click();
+	await page.locator('.svelte-flow__node').nth(1).click();
+	await expect(page.locator('.svelte-flow__edge')).toHaveCount(1);
+
+	// Nodes and edges persist in localStorage and come back after a reload.
+	await page.reload();
+	await expect(page.getByTitle('Add node')).toBeVisible({ timeout: 10_000 });
+	await expect(page.locator('.svelte-flow__node')).toHaveCount(2);
+	await expect(page.locator('.svelte-flow__edge')).toHaveCount(1);
 });
 
 test('characters: create one in the UI, then undo a delete', async ({ page }) => {

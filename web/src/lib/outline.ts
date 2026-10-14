@@ -2,6 +2,12 @@
 
 import type { OutlineItemOut } from './api-types.ts';
 
+export interface AssociatedNote {
+	id: string;
+	title: string;
+	text: string;
+}
+
 export interface OutlineItem {
 	id: number;
 	title: string;
@@ -17,6 +23,7 @@ export interface OutlineItem {
 	summary_sentence: string;
 	summary_full: string;
 	notes: string;
+	associated_notes: AssociatedNote[];
 	goal: string;
 	/** Word count: the scene's own, or the total of everything inside a folder. */
 	words: number;
@@ -26,6 +33,23 @@ export interface OutlineItem {
 export interface LabelDef {
 	name: string;
 	color: string;
+}
+
+export function parseAssociatedNotes(raw: string | undefined): AssociatedNote[] {
+	if (!raw) return [];
+	try {
+		const parsed = JSON.parse(raw);
+		if (!Array.isArray(parsed)) return [];
+		return parsed
+			.filter((n) => n && typeof n.title === 'string')
+			.map((n, idx) => ({
+				id: typeof n.id === 'string' && n.id ? n.id : `note_${idx}`,
+				title: String(n.title),
+				text: typeof n.text === 'string' ? n.text.slice(0, 2000) : ''
+			}));
+	} catch {
+		return [];
+	}
 }
 
 export function toItems(items: OutlineItemOut[], parentId: number | null = null): OutlineItem[] {
@@ -42,6 +66,7 @@ export function toItems(items: OutlineItemOut[], parentId: number | null = null)
 		summary_sentence: it.meta.summarySentence ?? '',
 		summary_full: it.meta.summaryFull ?? '',
 		notes: it.meta.notes ?? '',
+		associated_notes: parseAssociatedNotes(it.meta.associatedNotes),
 		goal: it.meta.setGoal ?? '',
 		words: it.words,
 		children: toItems(it.children, it.id)

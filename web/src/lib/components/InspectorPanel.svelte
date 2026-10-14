@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { call, ApiError } from '#lib/api';
-	import { ChevronDown, ChevronUp } from '@lucide/svelte';
+	import { ChevronDown, ChevronUp, StickyNote } from '@lucide/svelte';
 	import type { LabelDef, OutlineItem } from '#lib/outline.ts';
 
 	let { scene, labels, statusList, project }: {
@@ -158,6 +158,23 @@
 					placeholder="Scene notes"
 				></textarea>
 			</div>
+
+			{#if scene.associated_notes?.length}
+				<div class="flex flex-col gap-2">
+					<span class="text-xs" style="color: var(--muted)">Associated notes</span>
+					{#each scene.associated_notes as n (n.id)}
+						<div class="rounded border p-2 text-xs" style="border-color: var(--border); background: var(--surface)">
+							<div class="flex items-center gap-1.5 font-medium">
+								<StickyNote size={12} style="color: var(--accent)" />
+								<span>{n.title}</span>
+							</div>
+							{#if n.text}
+								<p class="mt-1 whitespace-pre-wrap" style="color: var(--muted)">{n.text}</p>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>

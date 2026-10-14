@@ -1,5 +1,8 @@
 /** Minimal API client: JSON in/out, CSRF header from the readable cookie. */
 
+/** API base URL: empty means relative paths, which works when API and SPA share the same origin. */
+const _base = '';
+
 export class ApiError extends Error {
 	constructor(
 		public status: number,
@@ -19,7 +22,7 @@ export async function api<T = unknown>(method: string, path: string, body?: unkn
 	const headers: Record<string, string> = {};
 	if (body !== undefined) headers['content-type'] = 'application/json';
 	if (method !== 'GET') headers['x-csrf-token'] = csrfToken();
-	const res = await fetch(path, {
+	const res = await fetch(_base ? _base + path : path, {
 		method,
 		headers,
 		credentials: 'same-origin',

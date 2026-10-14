@@ -1,7 +1,7 @@
 # manuskript-ai-web: build plan
 
 A self-hosted, single-user, phone-first web rewrite of the Manuskript AI fork.
-**Status (13 Oct 2026):** Phases 0-3 complete. Phase 4 (AI) now works end to end: a live chat against the llama.cpp server streams, uses the open scene as context and saves (see its section). Phase 5 done. Phase 6: outline, corkboard, and storyboard flow diagram done; storyline and drag-and-drop not started. Phase 7 (Google Drive) is **dropped**; files will be synced another way (see Phase 7). Next: Phase 8 UI (search, revisions, export/import), then Phase 9 hardening.
+**Status (13 Oct 2026):** Phases 0-3 complete. Phase 4 (AI) now works end to end: a live chat against the llama.cpp server streams, uses the open scene as context and saves (see its section). Phase 5 done. Phase 6: outline, corkboard, whiteboard done; storyboard (flow diagram) replaced by whiteboard; storyline and drag-and-drop not started. Phase 7 (Google Drive) is **dropped**; files will be synced another way (see Phase 7). Next: Phase 8 UI (search, revisions, export/import), then Phase 9 hardening.
 
 **How this was last verified:** server 308 pytest, web 139 vitest, 18 Playwright (+1 live AI test, run on demand) (phone 390x844 and desktop 1440x900), svelte-check 0 errors. Run them with the commands in README.md.
 
@@ -15,8 +15,9 @@ A self-hosted, single-user, phone-first web rewrite of the Manuskript AI fork.
 | 3: editor, icon toolbar, design system | ✅ Done | CodeMirror editor with line wrapping, formatting toolbar, autosave, version conflicts, word count, session goal, typewriter and line focus, 32 themes. An empty scene now gets an editor (it used to show none). |
 | 4: AI assistant | ✅ Done (local model) | Repaired and run live against llama.cpp on 11 Oct 2026. Anthropic, Gemini and OpenAI have parser/payload tests but have not been run against real accounts. See the Phase 4 section. |
 | 5: characters, plots, world | ✅ Done | Full CRUD, search, inspector, general+summary, labels. Undo after delete now really re-creates the item on the server. Remaining: bulk actions, virtualised lists (Phase 6). |
-| 6: corkboard, outline, storyline | 🔄 Partial | Outline, Cards (corkboard) and Storyboard (flow diagram) done and tested. Not started: touch drag and drop, outline table, folder views, storyline, bulk actions, virtualised lists. |
+| 6: corkboard, outline, storyline | 🔄 Partial | Outline, Cards (corkboard), and Board (whiteboard) done and tested. Storyboard (flow diagram) was fully replaced by the whiteboard (free-form canvas, drag/zoom/pan via SvelteFlow). Not started: touch drag and drop, outline table, folder views, storyline, bulk actions, virtualised lists. |
 | 6b: project templates | ✅ Done | Save a project's structure as a template, start new projects from it. Not in the original plan. |
+| 6c: whiteboard, storyboard removal | ✅ Done | Board (whiteboard) replaces storyboard. Free-form canvas via `@xyflow/svelte` with shape/icon/note/scene-card nodes, toolbar, connection mode, localStorage persistence, and an icon picker. Old storyboard (`Cards` route) fully deleted. |
 | 7: Google Drive sync | ❌ Dropped | Decision 11 Oct 2026: not building Google integration. Project files will be synced another way (rsync, Syncthing or a mounted folder; see Phase 7). |
 | 8: export, import, search, goals, revisions | ⬜ Pending | **Server side is only partly done.** Search, revisions, `.msk` import and zip upload/download exist as API. Export (pandoc/WeasyPrint), compile and Markdown/OPML import do NOT exist yet (an earlier note here said they did). No UI for any of it. |
 | 9: hardening, backups, install guide | ⬜ Pending | Partly done early: see "Security fixes so far" in Phase 9. |

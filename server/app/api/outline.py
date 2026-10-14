@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/projects/{name}/outline", tags=["outline"],
 # Item fields the browser may set, mapped to the key stored in the file.
 FIELDS = {"label": "label", "status": "status", "compile": "compile", "pov": "POV",
           "summary_sentence": "summarySentence", "summary_full": "summaryFull",
-          "notes": "notes", "goal": "setGoal"}
+          "notes": "notes", "associated_notes": "associatedNotes", "goal": "setGoal"}
 
 
 class NewItem(BaseModel):
@@ -41,6 +41,7 @@ class Fields(BaseModel):
     summary_sentence: str | None = None
     summary_full: str | None = None
     notes: str | None = None
+    associated_notes: str | None = None
     goal: str | None = None
 
 

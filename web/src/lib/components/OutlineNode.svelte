@@ -1,6 +1,6 @@
 <script lang="ts">
 	import OutlineNode from './OutlineNode.svelte';
-	import { Folder, FileText, ChevronRight, ChevronDown, Pencil, Trash2 } from '@lucide/svelte';
+	import { Folder, FileText, ChevronRight, ChevronDown, Pencil, Trash2, StickyNote } from '@lucide/svelte';
 	import { labelColor, type LabelDef, type OutlineItem } from '#lib/outline.ts';
 
 	let {
@@ -106,6 +106,17 @@
 		<span class="min-w-0 flex-1 truncate text-sm">{node.title}</span>
 	{/if}
 
+	{#if node.associated_notes?.length}
+		<span
+			class="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-xs"
+			style="background: var(--surface); color: var(--muted); border: 1px solid var(--border)"
+			title="{node.associated_notes.length} associated note{node.associated_notes.length === 1 ? '' : 's'}"
+		>
+			<StickyNote size={12} />
+			{node.associated_notes.length}
+		</span>
+	{/if}
+
 	{#if color}
 		<span class="size-2.5 shrink-0 rounded-full" style="background-color: {color}" aria-hidden="true"></span>
 	{/if}
@@ -133,6 +144,29 @@
 		style="color: var(--danger)"><Trash2 size={14} /></button
 	>
 </div>
+
+{#if node.associated_notes?.length}
+	<div
+		class="flex flex-col border-b py-1 pr-3"
+		style="border-color: var(--border); padding-left: {40 + depth * 20}px; background: var(--surface)"
+	>
+		{#each node.associated_notes as n (n.id)}
+			<button
+				type="button"
+				class="flex items-start gap-2 rounded px-2 py-1 text-left text-xs hover:opacity-80"
+				onclick={() => onSelect(node)}
+			>
+				<StickyNote size={13} class="mt-0.5 shrink-0" style="color: var(--accent)" />
+				<span class="min-w-0 flex-1">
+					<strong class="font-medium" style="color: var(--text)">{n.title}</strong>
+					{#if n.text}
+						<span class="ml-1 truncate" style="color: var(--muted)">— {n.text}</span>
+					{/if}
+				</span>
+			</button>
+		{/each}
+	</div>
+{/if}
 
 {#if isOpen && node.children.length > 0}
 	<div class="outline-children" role="group" data-parent={node.type === 'folder' ? String(node.id) : ''}>

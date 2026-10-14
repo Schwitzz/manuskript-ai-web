@@ -389,7 +389,7 @@ let strokeDashoffset = $derived(circumference - (progressPct / 100) * circumfere
 </AppShell>
 {:else}
     <AppShell title={title || 'Untitled'}>
-<div class="flex flex-col">
+<div class="flex h-full flex-col">
 <!-- Status bar -->
 <div class="flex items-center gap-2 border-b px-3 py-1 text-xs" style="border-color: var(--border); background: var(--surface)">
 {#if saving}
