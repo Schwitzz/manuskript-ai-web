@@ -38,3 +38,6 @@ Before editing any source code, follow this protocol strictly:
    - Creating a Chapter creates a `.md` item (`type: 'md'`, labeled `Chapter`, with a `<BookOpen>` icon and editable on the Write page just like scenes/notes).
    - `resolvePlacementForAdd(outline, labels, addingType, active)` in `web/src/lib/outline.ts` inserts a newly created Scene directly beneath the active `.md` Chapter (and after any scenes already belonging to that chapter, before the next Chapter), while placing a new Chapter after the current Chapter and its scenes.
    - `siblingDepthOffset` and `flattenWithDepth` visually indent scenes one level deeper (`depth + 1`) under their preceding `.md` Chapter in both the Tree view and the Table view (`padding-left: ${8 + depth * 20}px`).
+6. **Outline Drag-and-Drop & Table View Selection (✅ Complete)**:
+   - Both Tree view and Table view support drag-and-drop reordering via `SortableJS` (`GripVertical` drag handles, `forceFallback: true`, `computeFlatTableMove` for flat table rows, and server persistence via `POST /api/projects/{name}/outline/{item_id}/move`).
+   - Single-clicking any row or cell in Table view highlights the row (`aria-selected="true"`) and loads the item into the active editing section at the bottom (double-clicking the Name or Summary cell opens inline cell editing).
