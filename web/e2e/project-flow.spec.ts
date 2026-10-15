@@ -144,10 +144,14 @@ test('whiteboard: add nodes to the canvas, link them, and keep them after a relo
 	await page.getByRole('button', { name: 'Rectangle', exact: true }).click();
 	await expect(page.locator('.svelte-flow__node')).toHaveCount(1);
 
-	// Edit the shape's label and add a note after adding to the board.
+	// Edit the shape's label, note, and color after adding to the board.
 	await page.getByLabel('Shape label').fill('Protagonist');
 	await page.getByLabel('Shape note').fill('Secretly the heir');
 	await expect(page.locator('.svelte-flow__node').first()).toContainText('Protagonist');
+
+	await page.getByTitle('Color').click();
+	await page.getByRole('button', { name: 'Color Red' }).click();
+	await expect(page.locator('.shape-node').first()).toHaveAttribute('data-color', '#ef4444');
 
 	// Toggle "Show notes" selector so the note is visible unobtrusively.
 	await page.getByTitle('Show notes').click();
@@ -174,8 +178,12 @@ test('whiteboard: add nodes to the canvas, link them, and keep them after a relo
 	await expect(edgePath).toHaveCount(1);
 	await expect(edgePath).toHaveAttribute('stroke-dasharray', '12 4 2 4');
 
-	// Select the rendered edge and verify all 4 line types render their stroke-dasharray on the SVG path.
+	// Select the rendered edge and verify all 4 line types + edge color render on the SVG path.
 	await page.locator('.svelte-flow__edge').first().click({ force: true });
+
+	await page.getByTitle('Color').click();
+	await page.getByRole('button', { name: 'Color Emerald' }).click();
+	await expect(edgePath).toHaveAttribute('data-color', '#22c55e');
 
 	await page.getByTitle('Line style').click();
 	await page.getByRole('button', { name: 'Dash', exact: true }).click();
@@ -197,12 +205,35 @@ test('whiteboard: add nodes to the canvas, link them, and keep them after a relo
 	await expect(page.locator('.svelte-flow__node').first()).toContainText('Protagonist');
 	await expect(page.locator('.svelte-flow__node')).toHaveCount(2);
 
-	// Nodes and edges persist in localStorage and come back after a reload.
+	// Create a second whiteboard for the project, add a note, then switch back to Main Board.
+	await page.getByRole('button', { name: 'Whiteboards' }).click();
+	await page.getByRole('button', { name: 'New whiteboard' }).click();
+	await page.getByLabel('Board name').fill('Subplot Board');
+	await page.getByRole('button', { name: 'Save board' }).click();
+	await expect(page.getByRole('button', { name: 'Whiteboards' })).toContainText('Subplot Board');
+	await expect(page.locator('.svelte-flow__node')).toHaveCount(0);
+
+	await page.getByTitle('Add node').click();
+	await page.getByRole('button', { name: 'Note', exact: true }).click();
+	await expect(page.locator('.svelte-flow__node')).toHaveCount(1);
+
+	// Switch back to Main Board
+	await page.getByRole('button', { name: 'Whiteboards' }).click();
+	await page.getByRole('button', { name: 'Main Board' }).click();
+	await expect(page.locator('.svelte-flow__node')).toHaveCount(2);
+
+	// Clear localStorage and reload to prove whiteboards persisted on the server in whiteboards.json!
+	await page.evaluate(() => {
+		localStorage.removeItem('msk_whiteboard_novel');
+		localStorage.removeItem('msk_whiteboards_novel');
+	});
 	await page.reload();
 	await expect(page.getByTitle('Add node')).toBeVisible({ timeout: 10_000 });
 	await expect(page.locator('.svelte-flow__node')).toHaveCount(2);
+	await expect(page.locator('.shape-node').first()).toHaveAttribute('data-color', '#ef4444');
 	await expect(page.locator('.svelte-flow__edge-path')).toHaveCount(1);
 	await expect(page.locator('.svelte-flow__edge-path')).toHaveAttribute('stroke-dasharray', '12 4 2 4');
+	await expect(page.locator('.svelte-flow__edge-path')).toHaveAttribute('data-color', '#22c55e');
 });
 
 test('characters: create one in the UI, then undo a delete', async ({ page }) => {

@@ -268,3 +268,24 @@ class BrokenRefOut(BaseModel):
 
 class BrokenRefsOut(BaseModel):
     broken: list[BrokenRefOut]
+
+
+class WhiteboardViewport(BaseModel):
+    x: float = 0.0
+    y: float = 0.0
+    zoom: float = 1.0
+
+
+class WhiteboardBoard(BaseModel):
+    id: str = Field(min_length=1, max_length=100)
+    name: str = Field(min_length=1, max_length=200)
+    nodes: list[dict] = Field(default_factory=list)
+    edges: list[dict] = Field(default_factory=list)
+    viewport: WhiteboardViewport = Field(default_factory=WhiteboardViewport)
+    show_all_notes: bool = False
+
+
+class WhiteboardsData(BaseModel):
+    active_board_id: str = Field(min_length=1, max_length=100)
+    boards: list[WhiteboardBoard] = Field(min_length=1)
+

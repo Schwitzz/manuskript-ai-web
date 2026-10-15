@@ -24,19 +24,24 @@
 	const dash = $derived(
 		(LINE_TYPES.find((t) => t.id === data?.lineType) ?? LINE_TYPES[0])?.dasharray ?? ''
 	);
+
+	const strokeColor = $derived(
+		typeof data?.color === 'string' && data.color ? data.color : 'var(--accent, #3b82f6)'
+	);
 </script>
 
 <path
 	{id}
 	d={path}
 	class="svelte-flow__edge-path"
+	data-color={typeof data?.color === 'string' && data.color ? data.color : undefined}
 	marker-start={markerStart}
 	marker-end={markerEnd}
 	fill="none"
-	stroke="var(--accent, #3b82f6)"
+	stroke={strokeColor}
 	stroke-width="2"
 	stroke-dasharray={dash || undefined}
-	style="stroke: var(--accent, #3b82f6); stroke-width: 2px;{dash ? ` stroke-dasharray: ${dash};` : ''}"
+	style="stroke: {strokeColor}; stroke-width: 2px;{dash ? ` stroke-dasharray: ${dash};` : ''}"
 />
 {#if interactionWidth && interactionWidth > 0}
 	<path

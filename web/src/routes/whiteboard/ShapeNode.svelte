@@ -6,8 +6,9 @@
 		label?: string;
 		shape?: string;
 		note?: string;
+		color?: string;
 		showNotes?: boolean;
-		onUpdate?: (patch: { label?: string; note?: string }) => void;
+		onUpdate?: (patch: { label?: string; note?: string; color?: string }) => void;
 	};
 	type ShapeNodeType = Node<ShapeNodeData, 'shape'>;
 
@@ -16,7 +17,9 @@
 	const shape = $derived(data?.shape || 'rectangle');
 	const label = $derived(data?.label || '');
 	const note = $derived(data?.note || '');
+	const color = $derived(data?.color || '');
 	const showNotes = $derived(Boolean(data?.showNotes));
+	const activeColor = $derived(color || 'var(--accent)');
 
 	let editingLabel = $state(false);
 	let draftLabel = $state('');
@@ -35,7 +38,11 @@
 	}
 </script>
 
-<div class="shape-node {selected ? 'selected' : ''}">
+<div
+	class="shape-node {selected ? 'selected' : ''}"
+	data-color={color || undefined}
+	style="--node-color: {activeColor}; {color ? `border-color: ${color}; background: color-mix(in srgb, ${color} 12%, var(--surface));` : ''}"
+>
 	<Handle type="target" position={Position.Left} />
 	{#if note}
 		<span class="shape-note-badge" title="Has note" aria-label="Shape has note">
@@ -46,13 +53,13 @@
 		</div>
 	{/if}
 	{#if shape === 'arrow'}
-		<ArrowRight size={32} style="color:var(--accent)" />
+		<ArrowRight size={32} style="color: {activeColor}" />
 	{:else if shape === 'circle'}
-		<Circle size={32} style="color:var(--accent)" />
+		<Circle size={32} style="color: {activeColor}" />
 	{:else if shape === 'triangle'}
-		<Triangle size={32} style="color:var(--accent)" />
+		<Triangle size={32} style="color: {activeColor}" />
 	{:else}
-		<Square size={32} style="color:var(--accent)" />
+		<Square size={32} style="color: {activeColor}" />
 	{/if}
 	{#if editingLabel}
 		<input
@@ -96,8 +103,8 @@
 		min-width: 84px;
 	}
 	:global(.shape-node.selected) {
-		border-color: var(--accent);
-		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+		border-color: var(--node-color, var(--accent));
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--node-color, var(--accent)) 30%, transparent);
 	}
 	.shape-label {
 		font-size: .75rem;
@@ -110,7 +117,7 @@
 		width: 96px;
 		font-size: .75rem;
 		padding: 2px 4px;
-		border: 1px solid var(--accent);
+		border: 1px solid var(--node-color, var(--accent));
 		border-radius: 4px;
 		background: var(--bg);
 		color: var(--text);
@@ -123,7 +130,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		color: var(--accent);
+		color: var(--node-color, var(--accent));
 		opacity: 0.75;
 	}
 	.shape-note-popover {

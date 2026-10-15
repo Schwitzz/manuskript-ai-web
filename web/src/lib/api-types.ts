@@ -484,6 +484,26 @@ export interface ValidationError {
 	ctx?: Record<string, unknown>;
 }
 
+export interface WhiteboardBoard {
+	id: string;
+	name: string;
+	nodes?: Record<string, unknown>[];
+	edges?: Record<string, unknown>[];
+	viewport?: WhiteboardViewport;
+	show_all_notes?: boolean;
+}
+
+export interface WhiteboardViewport {
+	x?: number;
+	y?: number;
+	zoom?: number;
+}
+
+export interface WhiteboardsData {
+	active_board_id: string;
+	boards: WhiteboardBoard[];
+}
+
 export interface WorldFields {
 	name?: string | null;
 	description?: string | null;
@@ -582,4 +602,6 @@ export interface Routes {
 	"GET /api/templates": { body: never; response: TemplateList };
 	"POST /api/templates": { body: NewTemplate; response: ProjectName };
 	"DELETE /api/templates/{name}": { body: never; response: TrashedOut };
+	"GET /api/projects/{name}/whiteboards": { body: never; response: WhiteboardsData };
+	"PUT /api/projects/{name}/whiteboards": { body: WhiteboardsData; response: WhiteboardsData };
 }

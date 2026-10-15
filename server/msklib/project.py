@@ -74,7 +74,7 @@ class Project:
         self.world: list[WorldItem] = []
         self._xml_loaded: dict[str, bytes] = {}
         self.settings: dict = {}
-        self.files_pending: dict[str, bytes] = {}  # extra files to write on the next save
+        self.files_pending: dict[str, str | bytes] = {}  # extra files to write on the next save
 
     class ReadOnlyError(Exception):
         pass
