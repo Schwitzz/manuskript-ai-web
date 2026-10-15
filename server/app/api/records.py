@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from app import projects as store
 from app.auth.deps import current_user
 from app.schemas import CharacterOut, CharactersOut, InfoAndSummaryOut, InfoOut, LabelsAndStatusOut, LabelsOut, Ok, StatusOut, SummaryOut
-from msklib.records import Character, Label
+from msklib.records import Character, Label, normalise_info_keys, normalise_summary_keys
 
 router = APIRouter(prefix="/api/projects/{name}", tags=["records"],
                    dependencies=[Depends(current_user)])
@@ -130,7 +130,7 @@ def get_info(name: str):
 @router.put("/info", response_model=InfoOut)
 def set_info(name: str, body: KeyedIn):
     with store.open_project(name) as p:
-        p.infos = {k: v for k, v in body.values.items() if v.strip()}
+        p.infos = normalise_info_keys(body.values)
         p.save()
         return {"info": p.infos}
 
@@ -138,6 +138,6 @@ def set_info(name: str, body: KeyedIn):
 @router.put("/summary", response_model=SummaryOut)
 def set_summary(name: str, body: KeyedIn):
     with store.open_project(name) as p:
-        p.summary = {k: v for k, v in body.values.items() if v.strip()}
+        p.summary = normalise_summary_keys(body.values)
         p.save()
         return {"summary": p.summary}

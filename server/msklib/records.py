@@ -104,8 +104,33 @@ def parse_status(text: str) -> list[str]:
 INFO_KEYS = ["Title", "Subtitle", "Serie", "Volume", "Genre", "License", "Author", "Email"]
 SUMMARY_KEYS = ["Situation", "Sentence", "Paragraph", "Page", "Full"]
 
+_CANONICAL_INFO = {k.lower(): k for k in INFO_KEYS}
+_CANONICAL_INFO["series"] = "Serie"
+_CANONICAL_SUMMARY = {k.lower(): k for k in SUMMARY_KEYS}
+
+
+def normalise_info_keys(info: dict[str, str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for k, v in info.items():
+        if not v or not str(v).strip():
+            continue
+        canon = _CANONICAL_INFO.get(k.lower(), k)
+        out[canon] = str(v).strip()
+    return out
+
+
+def normalise_summary_keys(summary: dict[str, str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for k, v in summary.items():
+        if not v or not str(v).strip():
+            continue
+        canon = _CANONICAL_SUMMARY.get(k.lower(), k)
+        out[canon] = str(v).strip()
+    return out
+
 
 def render_infos(info: dict[str, str]) -> str:
+    info = normalise_info_keys(info)
     out = ""
     for key in INFO_KEYS:
         val = info.get(key, "").strip()
@@ -118,6 +143,7 @@ def render_infos(info: dict[str, str]) -> str:
 
 
 def render_summary(summary: dict[str, str]) -> str:
+    summary = normalise_summary_keys(summary)
     out = ""
     for key in SUMMARY_KEYS:
         val = summary.get(key, "").strip()

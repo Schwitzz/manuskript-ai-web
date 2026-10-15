@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="MSK_", env_file=".env", extra="ignore")
 
     data_dir: Path = Path("/data")
+    projects_dir_override: Path | None = None
     secret_key: str = "change-me"
     cookie_secure: bool = True
     session_hours: int = 24 * 14
@@ -19,6 +20,8 @@ class Settings(BaseSettings):
 
     @property
     def projects_dir(self) -> Path:
+        if self.projects_dir_override is not None:
+            return self.projects_dir_override
         return self.data_dir / "projects"
 
     @property

@@ -32,7 +32,16 @@ export async function api<T = unknown>(method: string, path: string, body?: unkn
 		let msg = res.statusText;
 		try {
 			const j = await res.json();
-			msg = typeof j.detail === 'string' ? j.detail : msg;
+			if (typeof j.detail === 'string') {
+				msg = j.detail;
+			} else if (Array.isArray(j.detail) && j.detail.length > 0) {
+				msg = j.detail
+					.map((d: { msg?: string; loc?: (string | number)[] }) => {
+						const field = Array.isArray(d.loc) ? d.loc[d.loc.length - 1] : '';
+						return field ? `${field}: ${d.msg ?? 'invalid'}` : (d.msg ?? 'Invalid input');
+					})
+					.join('; ');
+			}
 		} catch {
 			/* keep statusText */
 		}

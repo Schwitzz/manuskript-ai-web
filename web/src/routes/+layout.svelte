@@ -40,7 +40,7 @@
 	<link rel="icon" href={favicon} />
 	<link rel="manifest" href="/manifest.webmanifest" />
 	<meta name="theme-color" content={appearance.active?.window ?? "#14161b"} />
-	<title>Manuskript AI</title>
+	<title>Moduskript</title>
 </svelte:head>
 
 {#if ready}

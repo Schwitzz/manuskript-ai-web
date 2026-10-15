@@ -61,17 +61,18 @@ docker compose up -d
 
 ---
 
-## Known Issues & Upcoming Refinements (Next Iteration)
+## Recent Iteration 2 Enhancements (Resolved)
 
-1. **Commingled Folder Selection & Live Server Path**: Choosing a project folder in Desktop Settings and clicking Sync can point to the folder itself rather than `MSK_DATA_DIR/projects` or leave an already-running background web server pointing at the old `MSK_DATA_DIR`.
-2. **Desktop Board Tab Icon**: Needs a dedicated modern icon in the Desktop left navigation rail.
-3. **Initial Account Creation / Login Flow**: Creating a new login on `/login` can crash or fail under certain session/cookie states; the initial setup and login flow is being reworked.
-4. **Desktop Modern Icon Overhaul**: Sourced modern SVG icons (Lucide) are being installed across the entire Desktop UI.
-5. **Web App "More" Menu UI Overhaul**: Redesigning `/more` to mirror the Desktop App's workspace structure and navigation.
-6. **Web App Parity for Title Properties, World Builder & Plots**: Bringing Title/Book Info & Snowflake Summary, World Builder (`world.opml`), and Plots (`plots.xml` with steps & linked characters) to full visual and functional parity with the Desktop App.
-7. **Desktop Writer/Editor Icon Toolbar**: Transitioning the Desktop Editor `FormatBar` from text labels to an icon-led toolbar matching the Web Editor.
-8. **Desktop Whiteboard UX & Handle Drag-to-Connect**: Moving the Desktop Whiteboard toolbar to icon buttons and enabling direct click-and-drag line drawing from node handles.
-9. **Desktop AI Chat Header & Icon Controls**: Removing the native `QDockWidget` title bar (`×` / tiny float button) and replacing text buttons (`New`, `Del`, `Dock/Undock`) with modern icons across the AI Chat and all other panels.
+1. **Commingled Folder Selection & Live Server Path**: Selecting any project folder in Desktop Settings (`Settings → Web Server & Sync`) resolves the project directory, syncs `.msk` ↔ `MANUSKRIPT` markers, passes `MSK_PROJECTS_DIR_OVERRIDE` to the server, and restarts the background server automatically.
+2. **Desktop Modern Lucide SVG Icon Overhaul**: Added `manuskript/ui/modernIcons.py` providing theme-adaptive Lucide vector icons across the Desktop navigation rail (including the **Board** tab), Editor `FormatBar`, Whiteboard toolbar, Settings sidebar, and AI Chat dock.
+3. **Resilient Initial Login & Account Creation (`/login`)**: Guaranteed SQLite initialization and added a tabbed **Sign In / Create Account** UI on `/login`.
+4. **Web App `/more` Workspace Hub & Full Parity for Title Properties, World Builder & Plots**:
+   - Redesigned `/more` into a structured Story & Manuscript Workspace hub.
+   - Upgraded **Title Properties & Snowflake Summary** (`/settings`) with canonical `infos.txt`/`summary.txt` keys and live word/page counts.
+   - Upgraded **World Builder** (`/world`) with a split OPML tree, search filter, and guided world-building prompt templates.
+   - Upgraded **Plots** (`/plots`) with a master-detail view, linked character badges, and plot structure step templates (*Freytag's Pyramid*, *Three Acts*, *Hero's Journey*, *Dan Wells 7-Point*).
+5. **Desktop Editor & Whiteboard UX**: Single-row icon-led `FormatBar` with Typography popover, icon-led Whiteboard toolbar, and direct **click-and-drag line connections from node handles**.
+6. **Desktop AI Chat Header**: Removed the native `QDockWidget` title bar (`×` / tiny float button) and replaced all controls with modern icons.
 
 ---
 

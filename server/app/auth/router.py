@@ -77,9 +77,22 @@ def status(request: Request):
 def setup(body: SetupBody, request: Request, response: Response):
     if not ip_allowed(client_ip(request)):
         raise HTTPException(403, "Setup not allowed from this address")
+    ip = client_ip(request)
+    is_local = ip in ("127.0.0.1", "::1", "localhost")
+    allow_multi = is_local and request.headers.get("x-allow-local-signup") == "1"
     with db() as conn:
-        if conn.execute("SELECT COUNT(*) AS n FROM user").fetchone()["n"]:
+        count = conn.execute("SELECT COUNT(*) AS n FROM user").fetchone()["n"]
+        if count and not allow_multi:
             raise HTTPException(409, "An account already exists")
+        existing = conn.execute(
+            "SELECT * FROM user WHERE LOWER(username) = ?",
+            (body.username.lower(),),
+        ).fetchone()
+        if existing:
+            if sec.verify_password(existing["password_hash"], body.password):
+                _set_session(request, response, sec.make_session(existing["id"]))
+                return {"ok": True}
+            raise HTTPException(409, "Username already exists")
         cur = conn.execute(
             "INSERT INTO user(username, password_hash) VALUES (?, ?)",
             (body.username, sec.hash_password(body.password)))

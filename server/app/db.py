@@ -37,6 +37,7 @@ def connect() -> sqlite3.Connection:
 @contextmanager
 def db():
     conn = connect()
+    conn.executescript(SCHEMA)
     try:
         yield conn
         conn.commit()

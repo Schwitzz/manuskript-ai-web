@@ -59,7 +59,7 @@
 <main class="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-5 py-8">
 	<div class="flex items-center gap-3">
 		<BookOpen size={32} color="var(--accent)" />
-		<h1 class="text-2xl font-semibold">Manuskript AI</h1>
+		<h1 class="text-2xl font-semibold">Moduskript</h1>
 	</div>
 
 	<section class="flex flex-col gap-2">
