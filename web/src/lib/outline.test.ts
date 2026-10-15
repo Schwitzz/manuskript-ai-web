@@ -9,6 +9,7 @@ import {
 	parseAssociatedNotes,
 	pathTo,
 	resolveParentForAdd,
+	resolvePlacementForAdd,
 	toItems
 } from './outline.ts';
 
@@ -91,48 +92,52 @@ describe('parseAssociatedNotes', () => {
 	});
 });
 
-describe('resolveParentForAdd & flattenWithDepth (scenes index under chapters)', () => {
+describe('resolvePlacementForAdd & flattenWithDepth (md chapters with scenes indexed underneath)', () => {
 	const labels = [
 		{ name: 'Idea', color: '#ff0' },
 		{ name: 'Note', color: '#0f0' },
 		{ name: 'Chapter', color: '#00f' },
 		{ name: 'Scene', color: '#f00' }
 	];
-	const chapterTree: OutlineItemOut[] = [
+	const mdChapterTree: OutlineItemOut[] = [
 		{
-			id: 10,
-			title: 'Chapter 1',
+			id: 1,
+			title: 'Draft',
 			type: 'folder',
-			words: 100,
-			meta: { label: '3' },
+			words: 200,
+			meta: {},
 			children: [
-				{ id: 11, title: 'Scene 1', type: 'md', words: 100, meta: { label: '4' }, children: [] }
+				{ id: 10, title: 'Chapter 1', type: 'md', words: 100, meta: { label: '3' }, children: [] },
+				{ id: 11, title: 'Scene 1', type: 'md', words: 100, meta: { label: '4' }, children: [] },
+				{ id: 20, title: 'Chapter 2', type: 'md', words: 0, meta: { label: '3' }, children: [] }
 			]
 		}
 	];
 
-	it('indexes a new scene under the selected chapter or the selected scene’s parent chapter', () => {
-		const items = toItems(chapterTree);
-		const ch1 = items[0];
-		const sc1 = ch1.children[0];
-		expect(resolveParentForAdd(items, labels, 'scene', ch1)).toBe(10);
-		expect(resolveParentForAdd(items, labels, 'scene', sc1)).toBe(10);
-		expect(resolveParentForAdd(items, labels, 'scene', null)).toBe(10);
+	it('places a new scene directly under the selected .md chapter (before the next chapter)', () => {
+		const items = toItems(mdChapterTree);
+		const draft = items[0];
+		const [ch1, sc1, ch2] = draft.children;
+		expect(resolvePlacementForAdd(items, labels, 'scene', ch1)).toEqual({ parentId: 1, position: 2 });
+		expect(resolvePlacementForAdd(items, labels, 'scene', sc1)).toEqual({ parentId: 1, position: 2 });
+		expect(resolvePlacementForAdd(items, labels, 'scene', ch2)).toEqual({ parentId: 1, position: 3 });
+		expect(resolveParentForAdd(items, labels, 'scene', ch1)).toBe(1);
 	});
 
-	it('places a new chapter as a sibling of an existing chapter rather than inside it', () => {
-		const items = toItems(chapterTree);
-		const ch1 = items[0];
-		const sc1 = ch1.children[0];
-		expect(resolveParentForAdd(items, labels, 'chapter', ch1)).toBeNull();
-		expect(resolveParentForAdd(items, labels, 'chapter', sc1)).toBeNull();
+	it('places a new chapter after the current .md chapter and its scenes', () => {
+		const items = toItems(mdChapterTree);
+		const [ch1, sc1] = items[0].children;
+		expect(resolvePlacementForAdd(items, labels, 'chapter', ch1)).toEqual({ parentId: 1, position: 2 });
+		expect(resolvePlacementForAdd(items, labels, 'chapter', sc1)).toEqual({ parentId: 1, position: 2 });
 	});
 
-	it('flattens items with their nesting depth for the table view', () => {
-		const items = toItems(chapterTree);
-		expect(flattenWithDepth(items).map((r) => ({ id: r.item.id, depth: r.depth }))).toEqual([
-			{ id: 10, depth: 0 },
-			{ id: 11, depth: 1 }
+	it('indents scenes under their preceding .md chapter in flattenWithDepth', () => {
+		const items = toItems(mdChapterTree);
+		expect(flattenWithDepth(items, 0, labels).map((r) => ({ id: r.item.id, depth: r.depth }))).toEqual([
+			{ id: 1, depth: 0 },
+			{ id: 10, depth: 1 },
+			{ id: 11, depth: 2 },
+			{ id: 20, depth: 1 }
 		]);
 	});
 });

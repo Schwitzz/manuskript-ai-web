@@ -91,8 +91,12 @@ test('create a project, open it in the editor, and use the outline', async ({ pa
 	const treeAfter = (await (await page.request.get('/api/projects/novel/outline')).json()).items;
 	const draftFolder = treeAfter[0];
 	const ch2 = draftFolder.children.find((c: { title: string }) => c.title === 'Chapter 2');
-	expect(ch2.type).toBe('folder');
-	expect(ch2.children.map((c: { title: string }) => c.title)).toEqual(['Scene 2A']);
+	const sc2a = draftFolder.children.find((c: { title: string }) => c.title === 'Scene 2A');
+	expect(ch2.type).toBe('md');
+	expect(sc2a.type).toBe('md');
+	// Scene 2A is placed right after Chapter 2 and visually indexed one level deeper (depth 2 under Chapter 2 at depth 1)
+	await expect(page.locator(`[data-node="${ch2.id}"]`)).toHaveAttribute('data-depth', '1');
+	await expect(page.locator(`[data-node="${sc2a.id}"]`)).toHaveAttribute('data-depth', '2');
 
 	// Highlight Chapter 2 (a chapter folder) and add a note to it as well.
 	await page.getByRole('treeitem', { name: /Chapter 2/ }).click();

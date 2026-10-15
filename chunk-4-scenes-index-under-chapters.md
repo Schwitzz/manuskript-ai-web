@@ -1,6 +1,11 @@
 # Chunk 4: Scenes Index Under Chapters, Not Inline
 
-**Status:** ✅ Complete (Tests Passing — 138 unit + 18 E2E + 308 server)
+**Status:** ✅ Complete (Tests Passing — 139 unit + 18 E2E + 308 server)
+
+## Implementation Notes (Final Architecture)
+- **Chapters are `.md` documents (`type: 'md'`, labeled `'Chapter'`):** `Add chapter` creates `type: 'md'` (so Chapters are editable in the Write editor just like scenes/notes and render with a `<BookOpen>` icon, not as folders).
+- **`resolvePlacementForAdd` (`web/src/lib/outline.ts`):** When adding a Scene while a `.md` Chapter (or one of its scenes) is selected, computes the exact `{ parentId, position }` right after that Chapter (and its existing scenes) and before the next Chapter.
+- **Visual indexing under `.md` Chapters (`siblingDepthOffset` & `flattenWithDepth`):** In both Tree view (`OutlineNode.svelte`) and Table view (`+page.svelte`), scenes following a `.md` Chapter in the same sibling list receive a `+1` depth offset so they visually nest/indent under their Chapter.
 
 ## Scope & Context Budget
 - **Files to read/edit:**

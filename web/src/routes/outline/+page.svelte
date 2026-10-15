@@ -8,7 +8,9 @@
 		findItem,
 		flatten,
 		flattenWithDepth,
-		resolveParentForAdd,
+		isChapterItem,
+		resolvePlacementForAdd,
+		siblingDepthOffset,
 		toItems,
 		type AssociatedNote,
 		type LabelDef,
@@ -113,7 +115,7 @@
 	}
 
 	const tableRows = $derived.by(() => {
-		const rows = flattenWithDepth(outline);
+		const rows = flattenWithDepth(outline, 0, labels);
 		if (!sortCol) return rows;
 		return [...rows].sort((a, b) => {
 			const va = cellSortKey(a.item, sortCol!);
@@ -368,8 +370,9 @@
 			addingPosition = null;
 		} else {
 			addingTargetId = null;
-			addingParentId = resolveParentForAdd(outline, labels, type, active);
-			addingPosition = null;
+			const placement = resolvePlacementForAdd(outline, labels, type, active);
+			addingParentId = placement.parentId;
+			addingPosition = placement.position;
 		}
 	}
 
@@ -509,8 +512,8 @@
 				return;
 			}
 
-			// Folder and Chapter -> 'folder' (so scenes index under chapters); Scene -> 'md'
-			const apiType = addingType === 'scene' ? 'md' : 'folder';
+			// Folder -> 'folder'; Chapter and Scene -> 'md' (editable on the Write page)
+			const apiType = addingType === 'folder' ? 'folder' : 'md';
 			const item: NewItem = { title, type: apiType };
 			if (addingParentId !== null) item.parent_id = addingParentId;
 			if (addingPosition !== null) item.position = addingPosition;
@@ -634,9 +637,10 @@
 				<!-- Tree view -->
 				<div class="outline-children flex flex-col rounded-lg border" style="border-color: var(--border)"
 					role="tree" aria-label="Outline" data-parent="" bind:this={treeEl}>
-					{#each outline as item (item.id)}
+					{#each outline as item, idx (item.id)}
 						<OutlineNode
-							node={item} {expanded} {selectedId} {editingId} {editingTitle}
+							node={item} depthOffset={siblingDepthOffset(outline, idx, labels)}
+							{expanded} {selectedId} {editingId} {editingTitle}
 							{labels} {statusList}
 							onToggleExpand={toggleExpand} onSelect={select}
 							onRenameStart={startEdit} onRename={renameItem}
@@ -712,6 +716,8 @@
 											</span>
 											{#if item.type === 'folder'}
 												<Folder size={14} style="color:var(--muted)" />
+											{:else if isChapterItem(item, labels)}
+												<BookOpen size={14} style="color:var(--muted)" />
 											{:else}
 												<FileText size={14} style="color:var(--muted)" />
 											{/if}

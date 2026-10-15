@@ -1,11 +1,12 @@
 <script lang="ts">
 	import OutlineNode from './OutlineNode.svelte';
-	import { Folder, FileText, ChevronRight, ChevronDown, Pencil, Trash2, StickyNote, GripVertical } from '@lucide/svelte';
-	import { labelColor, type LabelDef, type OutlineItem } from '#lib/outline.ts';
+	import { Folder, FileText, BookOpen, ChevronRight, ChevronDown, Pencil, Trash2, StickyNote, GripVertical } from '@lucide/svelte';
+	import { isChapterItem, labelColor, siblingDepthOffset, type LabelDef, type OutlineItem } from '#lib/outline.ts';
 
 	let {
 		node,
 		depth = 0,
+		depthOffset = 0,
 		expanded,
 		selectedId,
 		editingId,
@@ -21,6 +22,7 @@
 	}: {
 		node: OutlineItem;
 		depth?: number;
+		depthOffset?: number;
 		expanded: { has(id: string): boolean };
 		selectedId: number | null;
 		editingId: number | null;
@@ -43,20 +45,22 @@
 	const isOpen = $derived(expanded.has(String(node.id)));
 	const color = $derived(labelColor(labels, node.label));
 	const statusName = $derived(node.status ? (statusList[Number(node.status) - 1] ?? '') : '');
+	const effectiveDepth = $derived(depth + depthOffset);
+	const isChapter = $derived(node.type !== 'folder' && isChapterItem(node, labels));
 	function focusOnMount(el: HTMLInputElement) {
 		el.focus();
 		el.select();
 	}
 </script>
 
-<div class="outline-node-wrap" data-node={node.id}>
+<div class="outline-node-wrap" data-node={node.id} data-depth={effectiveDepth}>
 	<div
 		role="treeitem"
 		aria-selected={selectedId === node.id}
 		aria-expanded={node.type === 'folder' ? isOpen : undefined}
 		tabindex="0"
 		class="flex items-center gap-1 border-b py-1 pr-2 transition-colors select-none"
-		style="border-color: var(--border); padding-left: {8 + depth * 20}px; background: {selectedId === node.id ? 'var(--accent)' : 'transparent'}; color: {selectedId === node.id ? 'var(--accent-text)' : 'inherit'}"
+		style="border-color: var(--border); padding-left: {8 + effectiveDepth * 20}px; background: {selectedId === node.id ? 'var(--accent)' : 'transparent'}; color: {selectedId === node.id ? 'var(--accent-text)' : 'inherit'}"
 		onclick={() => onSelect(node)}
 		onkeydown={(e) => {
 			if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
@@ -91,6 +95,8 @@
 
 		{#if node.type === 'folder'}
 			<Folder size={16} style="color: var(--muted)" />
+		{:else if isChapter}
+			<BookOpen size={16} style="color: var(--muted)" />
 		{:else}
 			<FileText size={16} style="color: var(--muted)" />
 		{/if}
@@ -156,7 +162,7 @@
 	{#if node.associated_notes?.length}
 		<div
 			class="flex flex-col border-b py-1 pr-3"
-			style="border-color: var(--border); padding-left: {40 + depth * 20}px; background: var(--surface)"
+			style="border-color: var(--border); padding-left: {40 + effectiveDepth * 20}px; background: var(--surface)"
 		>
 			{#each node.associated_notes as n (n.id)}
 				<button
@@ -183,10 +189,11 @@
 			data-parent={String(node.id)}
 			style={node.children.length === 0 ? 'min-height: 4px;' : ''}
 		>
-			{#each node.children as child (child.id)}
+			{#each node.children as child, idx (child.id)}
 				<OutlineNode
 					node={child}
 					depth={depth + 1}
+					depthOffset={siblingDepthOffset(node.children, idx, labels)}
 					{expanded}
 					{selectedId}
 					{editingId}

@@ -101,14 +101,43 @@ export function flatten(items: OutlineItem[]): OutlineItem[] {
 	return items.flatMap((i) => [i, ...flatten(i.children)]);
 }
 
+export function isChapterItem(item: OutlineItem, labels: LabelDef[]): boolean {
+	const lname = nameAt(labels, item.label, (l) => l.name).toLowerCase();
+	if (lname === 'chapter') return true;
+	if (lname && lname !== 'chapter') return false;
+	return /^chapter\b/i.test(item.title);
+}
+
+/**
+ * Returns 1 if `siblings[index]` is a non-folder scene that sits beneath a `.md`
+ * Chapter in the same sibling list, so scenes visually index under their chapter.
+ */
+export function siblingDepthOffset(
+	siblings: readonly OutlineItem[],
+	index: number,
+	labels: LabelDef[] = []
+): number {
+	const item = siblings[index];
+	if (!item || item.type === 'folder' || isChapterItem(item, labels)) return 0;
+	for (let i = index - 1; i >= 0; i--) {
+		if (siblings[i].type === 'folder') return 0;
+		if (isChapterItem(siblings[i], labels)) return 1;
+	}
+	return 0;
+}
+
 export function flattenWithDepth(
 	items: readonly OutlineItem[],
-	depth = 0
+	depth = 0,
+	labels: LabelDef[] = []
 ): { item: OutlineItem; depth: number }[] {
-	return items.flatMap((item) => [
-		{ item, depth },
-		...flattenWithDepth(item.children, depth + 1)
-	]);
+	return items.flatMap((item, idx) => {
+		const itemDepth = depth + siblingDepthOffset(items, idx, labels);
+		return [
+			{ item, depth: itemDepth },
+			...flattenWithDepth(item.children, depth + 1, labels)
+		];
+	});
 }
 
 /** The first scene (not folder) in reading order, or null for a project with no scenes. */
@@ -126,50 +155,87 @@ export function labelColor(labels: LabelDef[], index: string): string {
 	return nameAt(labels, index, (l) => l.color);
 }
 
-export function isChapterItem(item: OutlineItem, labels: LabelDef[]): boolean {
-	const lname = nameAt(labels, item.label, (l) => l.name).toLowerCase();
-	return lname === 'chapter' || /^chapter\b/i.test(item.title);
+function siblingsOf(outline: readonly OutlineItem[], parentId: number | null): readonly OutlineItem[] {
+	if (parentId === null) return outline;
+	return findItem(outline, parentId)?.children ?? [];
 }
 
 /**
- * Determine the parent folder ID when adding a 'folder', 'chapter', or 'scene'
- * so that scenes always index under chapters rather than inline.
+ * Determine `{ parentId, position }` when adding a 'folder', 'chapter', or 'scene'
+ * so that chapters are `.md` items and scenes index directly under their chapter.
  */
+export function resolvePlacementForAdd(
+	outline: readonly OutlineItem[],
+	labels: LabelDef[],
+	addingType: 'folder' | 'chapter' | 'scene',
+	active: OutlineItem | null
+): { parentId: number | null; position: number | null } {
+	if (addingType === 'scene') {
+		if (active) {
+			if (active.type === 'folder') {
+				return { parentId: active.id, position: null };
+			}
+			const siblings = siblingsOf(outline, active.parent_id);
+			const idx = siblings.findIndex((s) => s.id === active.id);
+			if (idx >= 0) {
+				let insertPos = idx + 1;
+				while (
+					insertPos < siblings.length &&
+					siblings[insertPos].type !== 'folder' &&
+					!isChapterItem(siblings[insertPos], labels)
+				) {
+					insertPos++;
+				}
+				return { parentId: active.parent_id, position: insertPos };
+			}
+			return { parentId: active.parent_id, position: null };
+		}
+		const folders = flatten([...outline]).filter((i) => i.type === 'folder');
+		return {
+			parentId: folders.length > 0 ? folders[folders.length - 1].id : null,
+			position: null
+		};
+	}
+
+	if (addingType === 'chapter') {
+		if (!active) {
+			const folders = flatten([...outline]).filter((i) => i.type === 'folder');
+			return {
+				parentId: folders.length > 0 ? folders[0].id : null,
+				position: null
+			};
+		}
+		if (active.type === 'folder') {
+			if (isChapterItem(active, labels)) return { parentId: active.parent_id, position: null };
+			return { parentId: active.id, position: null };
+		}
+		// Active is an .md chapter or scene: place the new chapter in the same parent folder after the current chapter's scenes
+		const siblings = siblingsOf(outline, active.parent_id);
+		const idx = siblings.findIndex((s) => s.id === active.id);
+		if (idx >= 0) {
+			let insertPos = idx + 1;
+			while (
+				insertPos < siblings.length &&
+				siblings[insertPos].type !== 'folder' &&
+				!isChapterItem(siblings[insertPos], labels)
+			) {
+				insertPos++;
+			}
+			return { parentId: active.parent_id, position: insertPos };
+		}
+		return { parentId: active.parent_id, position: null };
+	}
+
+	// addingType === 'folder'
+	if (active?.type === 'folder') return { parentId: active.id, position: null };
+	return { parentId: active?.parent_id ?? null, position: null };
+}
+
 export function resolveParentForAdd(
 	outline: readonly OutlineItem[],
 	labels: LabelDef[],
 	addingType: 'folder' | 'chapter' | 'scene',
 	active: OutlineItem | null
 ): number | null {
-	if (addingType === 'scene') {
-		if (active) {
-			if (active.type === 'folder') return active.id;
-			if (active.parent_id !== null) return active.parent_id;
-		}
-		// Fallback: last folder in reading order so scenes index under a chapter/folder if one exists
-		const folders = flatten([...outline]).filter((i) => i.type === 'folder');
-		return folders.length > 0 ? folders[folders.length - 1].id : null;
-	}
-
-	if (addingType === 'chapter') {
-		if (!active) return null;
-		if (active.type === 'folder') {
-			// If the active folder is itself a Chapter, add the new Chapter as a sibling, not nested inside it
-			if (isChapterItem(active, labels)) return active.parent_id;
-			return active.id;
-		}
-		// Active is a scene: if its parent is a Chapter folder, add the new Chapter as a sibling of that Chapter
-		if (active.parent_id !== null) {
-			const parentFolder = findItem(outline, active.parent_id);
-			if (parentFolder && isChapterItem(parentFolder, labels)) {
-				return parentFolder.parent_id;
-			}
-			return active.parent_id;
-		}
-		return null;
-	}
-
-	// addingType === 'folder'
-	if (active?.type === 'folder') return active.id;
-	return active?.parent_id ?? null;
+	return resolvePlacementForAdd(outline, labels, addingType, active).parentId;
 }
