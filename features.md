@@ -16,8 +16,8 @@ Before editing any source code, follow this protocol strictly:
 - [x] **Setup**: Created `features.md` and `chunk-1` through `chunk-4` `.md` files.
 - [x] **Chunk 1**: Whiteboard editable shape labels & unobtrusive hover/toggle notes (`chunk-1-whiteboard-labels-and-notes.md`) — ✅ Complete (Tests Passing)
 - [x] **Chunk 2**: Whiteboard connector line types: solid, dash, dot, solid dashed (`chunk-2-whiteboard-line-types.md`) — ✅ Complete (Tests Passing)
-- [ ] **Chunk 3**: Outline table/stacked view note field removal & notes on both chapters and scenes (`chunk-3-outline-table-notes-and-chapter-notes.md`) — ⬜ Pending
-- [ ] **Chunk 4**: Scenes index (nest) under chapters, not inline (`chunk-4-scenes-index-under-chapters.md`) — ⬜ Pending
+- [x] **Chunk 3**: Outline table/stacked view note field removal & notes on both chapters and scenes (`chunk-3-outline-table-notes-and-chapter-notes.md`) — ✅ Complete (Tests Passing)
+- [x] **Chunk 4**: Scenes index (nest) under chapters, not inline (`chunk-4-scenes-index-under-chapters.md`) — ✅ Complete (Tests Passing)
 
 ## Feature Overview & Implementation Notes
 1. **Whiteboard Editable Shape Labels (✅ Complete)**:
@@ -31,7 +31,10 @@ Before editing any source code, follow this protocol strictly:
    - Whiteboard connectors support four line styles—`solid`, `dash` (`8 5`), `dot` (`2 5`), and `solid-dashed` (`12 4 2 4`)—defined in `web/src/lib/whiteboard/line-types.ts` and rendered via a custom SvelteFlow edge component (`web/src/routes/whiteboard/DashedEdge.svelte`) that applies `stroke-dasharray` directly on the SVG `<path class="svelte-flow__edge-path">`.
    - The toolbar is horizontally centered at the top of the board (`left: 50%; transform: translateX(-50%)`).
    - The single **Line style** toolbar button displays a live SVG preview of the currently selected line style. Selecting a line style from its dropdown both updates any currently selected edge and activates `connectionMode` (`nodesDraggable={!connectionMode}`, `panOnDrag={!connectionMode}`), allowing the user to draw lines by clicking Node 1 → Node 2 or dragging from Node 1 to Node 2. Clicking the empty canvas exits connection mode.
-4. **Outline Stacked/Table View Note Removal & Chapter/Scene Notes (⬜ Pending — Chunk 3)**:
-   - Remove the inline `notes` column from the Outline table/stacked view. Notes are added by highlighting (selecting) a chapter or scene and clicking "Add note" (in the `+` menu or detail panel). Both chapters (`folder` or `md` with Chapter label) and scenes (`md`) support associated notes and detail-panel notes.
-5. **Scenes Index Under Chapters, Not Inline (⬜ Pending — Chunk 4)**:
-   - Creating a Chapter creates a `folder` item (labeled `Chapter`) so scenes can be indexed underneath it. Creating a Scene while a Chapter is selected (or while another Scene inside a Chapter is selected) nests the new Scene inside that Chapter rather than placing it inline at the same level. In the table view, child scenes render indented under their parent chapter in tree order.
+4. **Outline Stacked/Table View Note Removal & Chapter/Scene Notes (✅ Complete — Chunk 3)**:
+   - Removed the inline `notes` column from the Outline table/stacked view (`COLUMNS`, `EditField`, `cellText`, and table row cell) and removed the standalone `Notes` textarea from the bottom detail panel.
+   - Notes are added by highlighting (selecting) any chapter or scene and clicking **Add note** (in the `+` toolbar menu or **+ New note** in the detail panel). Both chapters (`folder` or `md` with Chapter label) and scenes (`md`) support associated notes and detail-panel note management.
+5. **Scenes Index Under Chapters, Not Inline (✅ Complete — Chunk 4)**:
+   - Creating a Chapter creates a `folder` item (labeled `Chapter`) so scenes can be indexed underneath it.
+   - `resolveParentForAdd(outline, labels, addingType, active)` in `web/src/lib/outline.ts` ensures that creating a Scene while a Chapter is selected (or while another Scene inside a Chapter is selected) nests the new Scene inside that Chapter rather than placing it inline at the same level, while creating a new Chapter places it as a sibling of an existing Chapter rather than inside it.
+   - In the table view, `flattenWithDepth` renders child scenes indented under their parent chapter in tree order (`padding-left: ${8 + depth * 20}px`).

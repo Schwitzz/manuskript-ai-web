@@ -7,7 +7,8 @@
 	import {
 		findItem,
 		flatten,
-		firstScene,
+		flattenWithDepth,
+		resolveParentForAdd,
 		toItems,
 		type AssociatedNote,
 		type LabelDef,
@@ -53,7 +54,7 @@
 	let addBusy = $state(false);
 
 	const selected = $derived(selectedId === null ? null : findItem(outline, selectedId));
-	const editableItems = $derived(flatten(outline).filter((i) => i.type !== 'folder'));
+	const editableItems = $derived(flatten(outline));
 
 	// ─── View toggle ───────────────────────────────────────────────────────────
 	let viewMode = $state<'tree' | 'table'>('tree');
@@ -71,8 +72,7 @@
 		{ key: 'status',  label: 'Status',  width: '80px' },
 		{ key: 'compile', label: 'Compile', width: '50px' },
 		{ key: 'pov',     label: 'POV',     width: '50px' },
-		{ key: 'summary', label: 'Summary', width: '160px' },
-		{ key: 'notes',   label: 'Notes',   width: '200px' }
+		{ key: 'summary', label: 'Summary', width: '160px' }
 	];
 	let visibleCols = new SvelteSet(COLUMNS.map((c) => c.key));
 	let pickerOpen = $state(false);
@@ -101,7 +101,6 @@
 			case 'compile': return item.compile;
 			case 'pov':     return item.pov;
 			case 'summary': return item.summary_sentence;
-			case 'notes':   return item.notes;
 			default:        return '';
 		}
 	}
@@ -113,19 +112,19 @@
 		}
 	}
 
-	const sortedOutline = $derived(
-		sortCol
-			? [...outline].sort((a, b) => {
-					const va = cellSortKey(a, sortCol!);
-					const vb = cellSortKey(b, sortCol!);
-					if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va;
-					return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
-			  })
-			: outline
-	);
+	const tableRows = $derived.by(() => {
+		const rows = flattenWithDepth(outline);
+		if (!sortCol) return rows;
+		return [...rows].sort((a, b) => {
+			const va = cellSortKey(a.item, sortCol!);
+			const vb = cellSortKey(b.item, sortCol!);
+			if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va;
+			return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+		});
+	});
 
 	// ─── Inline editing ────────────────────────────────────────────────────────
-	type EditField = 'summary_sentence' | 'notes';
+	type EditField = 'summary_sentence';
 	let editCell = $state<{ id: number; field: EditField } | null>(null);
 	let editVal = $state('');
 
@@ -286,25 +285,16 @@
 		addError = '';
 		const active = targetNode ?? selected;
 		if (type === 'note') {
-			if (active && active.type !== 'folder') {
+			if (active) {
 				addingTargetId = active.id;
-			} else if (active && active.type === 'folder') {
-				const inner = firstScene(active.children);
-				addingTargetId = inner?.id ?? firstScene(outline)?.id ?? null;
 			} else {
-				addingTargetId = firstScene(outline)?.id ?? null;
+				addingTargetId = flatten(outline)[0]?.id ?? null;
 			}
 			addingParentId = null;
 			addingPosition = null;
 		} else {
 			addingTargetId = null;
-			if (active?.type === 'folder') {
-				addingParentId = active.id;
-			} else if (active && active.parent_id !== null) {
-				addingParentId = active.parent_id;
-			} else {
-				addingParentId = null;
-			}
+			addingParentId = resolveParentForAdd(outline, labels, type, active);
 			addingPosition = null;
 		}
 	}
@@ -420,7 +410,7 @@
 					return;
 				}
 				const target = findItem(outline, addingTargetId);
-				if (!target || target.type === 'folder') {
+				if (!target) {
 					addError = 'Notes must be associated with a chapter or scene';
 					return;
 				}
@@ -445,8 +435,8 @@
 				return;
 			}
 
-			// Folder -> 'folder'; Chapter and Scene -> 'md' (editable on the Write page)
-			const apiType = addingType === 'folder' ? 'folder' : 'md';
+			// Folder and Chapter -> 'folder' (so scenes index under chapters); Scene -> 'md'
+			const apiType = addingType === 'scene' ? 'md' : 'folder';
 			const item: NewItem = { title, type: apiType };
 			if (addingParentId !== null) item.parent_id = addingParentId;
 			if (addingPosition !== null) item.position = addingPosition;
@@ -607,25 +597,26 @@
 					</div>
 
 					<!-- Rows -->
-					{#each sortedOutline as item (item.id)}
+					{#each tableRows as { item, depth } (item.id)}
 						<div
 							class="outline-row flex items-center border-b transition-colors hover:bg-[color:var(--accent)]/5"
 							data-node={item.id}
-							role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') select(item); }}
+							data-depth={depth}
+							role="button" tabindex="0" onclick={() => select(item)} onkeydown={(e) => { if (e.key === 'Enter') select(item); }}
 							style="border-color: var(--border)"
 						>
 							{#each COLUMNS as col}
 								{#if visibleCols.has(col.key)}
 									<div
 										class="outline-cell flex items-center gap-1 px-2 py-1.5 overflow-hidden shrink-0"
-										style="width: {col.width}"
+										style="width: {col.width}; {col.key === 'name' ? `padding-left: ${8 + depth * 20}px` : ''}"
 										onclick={(e) => {
-											if (col.key === 'name' && item.type !== 'folder') {
+											if (col.key === 'name') {
 												e.stopPropagation();
 												startEdit(item);
-											} else if (col.key === 'summary' || col.key === 'notes') {
+											} else if (col.key === 'summary') {
 												e.stopPropagation();
-												startEditCell(item, col.key === 'summary' ? 'summary_sentence' : 'notes');
+												startEditCell(item, 'summary_sentence');
 											}
 										}}
 										role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); } }}
@@ -697,30 +688,6 @@
 													{item.summary_sentence || '—'}
 												</span>
 											{/if}
-										{:else if col.key === 'notes'}
-											{#if item.type === 'folder'}
-												<span class="text-xs" style="color:var(--muted)">—</span>
-											{:else if editCell?.id === item.id && editCell.field === 'notes'}
-												<textarea
-													class="min-w-0 flex-1 rounded border px-1 py-0.5 text-sm"
-													rows={2} style="background:var(--surface);border-color:var(--accent)"
-													bind:value={editVal}
-													onblur={() => saveEditCell(item.id, 'notes', editVal)}
-													onkeydown={(e) => {
-														e.stopPropagation();
-														if (e.key === 'Enter' && !e.shiftKey) saveEditCell(item.id, 'notes', editVal);
-														if (e.key === 'Escape') cancelEditCell();
-													}}
-													onclick={(e) => e.stopPropagation()}
-													onfocus={(e) => {
-														const ta = e.currentTarget; ta.select(); ta.scrollIntoView({ block: 'nearest' });
-													}}
-												></textarea>
-											{:else}
-												<span class="min-w-0 flex-1 truncate text-sm" style="color:var(--muted)">
-													{item.notes || '—'}
-												</span>
-											{/if}
 										{/if}
 									</div>
 								{/if}
@@ -787,73 +754,59 @@
 						></textarea>
 					</label>
 
-					<label class="flex flex-col gap-1">
-						<span class="text-xs" style="color: var(--muted)">Notes</span>
-						<textarea
-							class="w-full rounded border px-2 py-1 text-sm"
-							rows={3}
-							style="background: var(--surface); border-color: var(--border); color: var(--text); resize: vertical"
-							bind:value={draftNotes}
-							onblur={() => setField(selected.id, 'notes', draftNotes)}
-							placeholder="Scene notes"
-						></textarea>
-					</label>
-
-					{#if selected.type !== 'folder'}
-						<div class="flex flex-col gap-2">
-							<div class="flex items-center justify-between">
-								<span class="text-xs" style="color: var(--muted)">
-									Associated notes ({selected.associated_notes?.length ?? 0})
-								</span>
-								<button
-									type="button"
-									class="flex items-center gap-1 rounded border px-2 py-1 text-xs"
-									style="border-color: var(--border)"
-									onclick={() => openAddForm('note', selected)}
-								>
-									<Plus size={12} /> New note
-								</button>
-							</div>
-
-							{#if selected.associated_notes?.length}
-								<div class="flex flex-col gap-2">
-									{#each selected.associated_notes as note (note.id)}
-										<div class="flex flex-col gap-1.5 rounded-lg border p-3" style="border-color: var(--border); background: var(--surface)">
-											<div class="flex items-center justify-between gap-2">
-												<div class="flex items-center gap-1.5 text-sm font-medium">
-													<StickyNote size={14} style="color: var(--accent)" />
-													<span>{note.title}</span>
-												</div>
-												<div class="flex items-center gap-2">
-													<span class="text-xs" style="color: var(--muted)">{note.text.length}/2000</span>
-													<button
-														type="button"
-														class="rounded p-1"
-														style="color: var(--danger)"
-														aria-label="Delete note {note.title}"
-														onclick={() => deleteAssociatedNote(selected, note.id)}
-													>
-														<Trash2 size={14} />
-													</button>
-												</div>
-											</div>
-											<textarea
-												class="w-full rounded border px-2 py-1 text-sm"
-												rows={2}
-												maxlength={2000}
-												style="background: var(--bg); border-color: var(--border); color: var(--text); resize: vertical"
-												value={note.text}
-												onblur={(e) => updateAssociatedNoteText(selected, note.id, e.currentTarget.value)}
-												placeholder="Note text (up to 2,000 characters)"
-											></textarea>
-										</div>
-									{/each}
-								</div>
-							{:else}
-								<p class="text-xs" style="color: var(--muted)">No associated notes yet.</p>
-							{/if}
+					<div class="flex flex-col gap-2">
+						<div class="flex items-center justify-between">
+							<span class="text-xs" style="color: var(--muted)">
+								Associated notes ({selected.associated_notes?.length ?? 0})
+							</span>
+							<button
+								type="button"
+								class="flex items-center gap-1 rounded border px-2 py-1 text-xs"
+								style="border-color: var(--border)"
+								onclick={() => openAddForm('note', selected)}
+							>
+								<Plus size={12} /> New note
+							</button>
 						</div>
-					{/if}
+
+						{#if selected.associated_notes?.length}
+							<div class="flex flex-col gap-2">
+								{#each selected.associated_notes as note (note.id)}
+									<div class="flex flex-col gap-1.5 rounded-lg border p-3" style="border-color: var(--border); background: var(--surface)">
+										<div class="flex items-center justify-between gap-2">
+											<div class="flex items-center gap-1.5 text-sm font-medium">
+												<StickyNote size={14} style="color: var(--accent)" />
+												<span>{note.title}</span>
+											</div>
+											<div class="flex items-center gap-2">
+												<span class="text-xs" style="color: var(--muted)">{note.text.length}/2000</span>
+												<button
+													type="button"
+													class="rounded p-1"
+													style="color: var(--danger)"
+													aria-label="Delete note {note.title}"
+													onclick={() => deleteAssociatedNote(selected, note.id)}
+												>
+													<Trash2 size={14} />
+												</button>
+											</div>
+										</div>
+										<textarea
+											class="w-full rounded border px-2 py-1 text-sm"
+											rows={2}
+											maxlength={2000}
+											style="background: var(--bg); border-color: var(--border); color: var(--text); resize: vertical"
+											value={note.text}
+											onblur={(e) => updateAssociatedNoteText(selected, note.id, e.currentTarget.value)}
+											placeholder="Note text (up to 2,000 characters)"
+										></textarea>
+									</div>
+								{/each}
+							</div>
+						{:else}
+							<p class="text-xs" style="color: var(--muted)">No associated notes yet.</p>
+						{/if}
+					</div>
 
 					<div class="flex gap-2">
 						{#if selected.type !== 'folder'}

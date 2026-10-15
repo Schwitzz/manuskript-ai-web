@@ -1,6 +1,6 @@
 # Chunk 3: Outline Stacked/Table View Note Removal & Notes on Both Chapters and Scenes
 
-**Status:** ⬜ Pending
+**Status:** ✅ Complete (Tests Passing — 138 unit + 18 E2E + 308 server)
 
 ## Scope & Context Budget
 - **Files to read/edit:**

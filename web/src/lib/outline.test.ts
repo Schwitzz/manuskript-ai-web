@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { OutlineItemOut } from './api-types.ts';
-import { firstScene, flatten, labelColor, nameAt, parseAssociatedNotes, pathTo, toItems } from './outline.ts';
+import {
+	firstScene,
+	flatten,
+	flattenWithDepth,
+	labelColor,
+	nameAt,
+	parseAssociatedNotes,
+	pathTo,
+	resolveParentForAdd,
+	toItems
+} from './outline.ts';
 
 const tree: OutlineItemOut[] = [
 	{
@@ -78,5 +88,51 @@ describe('parseAssociatedNotes', () => {
 	it('returns empty array on missing or invalid JSON', () => {
 		expect(parseAssociatedNotes(undefined)).toEqual([]);
 		expect(parseAssociatedNotes('not-json')).toEqual([]);
+	});
+});
+
+describe('resolveParentForAdd & flattenWithDepth (scenes index under chapters)', () => {
+	const labels = [
+		{ name: 'Idea', color: '#ff0' },
+		{ name: 'Note', color: '#0f0' },
+		{ name: 'Chapter', color: '#00f' },
+		{ name: 'Scene', color: '#f00' }
+	];
+	const chapterTree: OutlineItemOut[] = [
+		{
+			id: 10,
+			title: 'Chapter 1',
+			type: 'folder',
+			words: 100,
+			meta: { label: '3' },
+			children: [
+				{ id: 11, title: 'Scene 1', type: 'md', words: 100, meta: { label: '4' }, children: [] }
+			]
+		}
+	];
+
+	it('indexes a new scene under the selected chapter or the selected scene’s parent chapter', () => {
+		const items = toItems(chapterTree);
+		const ch1 = items[0];
+		const sc1 = ch1.children[0];
+		expect(resolveParentForAdd(items, labels, 'scene', ch1)).toBe(10);
+		expect(resolveParentForAdd(items, labels, 'scene', sc1)).toBe(10);
+		expect(resolveParentForAdd(items, labels, 'scene', null)).toBe(10);
+	});
+
+	it('places a new chapter as a sibling of an existing chapter rather than inside it', () => {
+		const items = toItems(chapterTree);
+		const ch1 = items[0];
+		const sc1 = ch1.children[0];
+		expect(resolveParentForAdd(items, labels, 'chapter', ch1)).toBeNull();
+		expect(resolveParentForAdd(items, labels, 'chapter', sc1)).toBeNull();
+	});
+
+	it('flattens items with their nesting depth for the table view', () => {
+		const items = toItems(chapterTree);
+		expect(flattenWithDepth(items).map((r) => ({ id: r.item.id, depth: r.depth }))).toEqual([
+			{ id: 10, depth: 0 },
+			{ id: 11, depth: 1 }
+		]);
 	});
 });

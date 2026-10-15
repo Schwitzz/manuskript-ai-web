@@ -72,6 +72,38 @@ test('create a project, open it in the editor, and use the outline', async ({ pa
 	await expect(page.getByText('Plot clue').first()).toBeVisible();
 	await expect(page.getByText(/muddy footprint/).first()).toBeVisible();
 
+	// Add a Chapter and then a Scene: the Scene indexes under the Chapter, not inline.
+	await page.getByRole('button', { name: 'Add item' }).click();
+	await page.getByRole('button', { name: 'Add chapter' }).click();
+	const chDialog = page.getByRole('dialog', { name: 'Add chapter' });
+	await chDialog.getByLabel('Title').fill('Chapter 2');
+	await chDialog.getByRole('button', { name: 'Add chapter' }).click();
+	await expect(page.getByRole('treeitem', { name: /Chapter 2/ })).toBeVisible();
+
+	// With Chapter 2 selected, add a Scene and verify it nests inside Chapter 2.
+	await page.getByRole('button', { name: 'Add item' }).click();
+	await page.getByRole('button', { name: 'Add scene' }).click();
+	const scDialog = page.getByRole('dialog', { name: 'Add scene' });
+	await scDialog.getByLabel('Title').fill('Scene 2A');
+	await scDialog.getByRole('button', { name: 'Add scene' }).click();
+	await expect(page.getByRole('treeitem', { name: /Scene 2A/ })).toBeVisible();
+
+	const treeAfter = (await (await page.request.get('/api/projects/novel/outline')).json()).items;
+	const draftFolder = treeAfter[0];
+	const ch2 = draftFolder.children.find((c: { title: string }) => c.title === 'Chapter 2');
+	expect(ch2.type).toBe('folder');
+	expect(ch2.children.map((c: { title: string }) => c.title)).toEqual(['Scene 2A']);
+
+	// Highlight Chapter 2 (a chapter folder) and add a note to it as well.
+	await page.getByRole('treeitem', { name: /Chapter 2/ }).click();
+	await page.getByRole('button', { name: 'Add item' }).click();
+	await page.getByRole('button', { name: 'Add note' }).click();
+	const chNoteDialog = page.getByRole('dialog', { name: 'Add note' });
+	await chNoteDialog.getByLabel('Title').fill('Chapter arc');
+	await chNoteDialog.getByLabel('Note', { exact: true }).fill('Rising tension across the chapter.');
+	await chNoteDialog.getByRole('button', { name: 'Add note' }).click();
+	await expect(page.getByText('Chapter arc').first()).toBeVisible();
+
 	// ...and survive a reload.
 	await page.reload();
 	await page.getByRole('treeitem', { name: /Chapter 1/ }).click();

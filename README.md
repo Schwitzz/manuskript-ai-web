@@ -15,7 +15,7 @@ Licence: GPL-3.0 (see COPYING). Parts are derived from Manuskript
 # server (tests: 308)
 cd server && uv sync && uv run pytest
 
-# web app (type check, unit tests: 135, build, e2e: 18 at 390x844 and 1440x900)
+# web app (type check, unit tests: 138, build, e2e: 18 at 390x844 and 1440x900)
 cd web && npm install && npm run check && npm test && npm run build && npx playwright test
 
 # run the built app locally

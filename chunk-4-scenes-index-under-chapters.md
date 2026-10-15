@@ -1,6 +1,6 @@
 # Chunk 4: Scenes Index Under Chapters, Not Inline
 
-**Status:** ⬜ Pending
+**Status:** ✅ Complete (Tests Passing — 138 unit + 18 E2E + 308 server)
 
 ## Scope & Context Budget
 - **Files to read/edit:**

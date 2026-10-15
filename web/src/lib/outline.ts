@@ -101,6 +101,16 @@ export function flatten(items: OutlineItem[]): OutlineItem[] {
 	return items.flatMap((i) => [i, ...flatten(i.children)]);
 }
 
+export function flattenWithDepth(
+	items: readonly OutlineItem[],
+	depth = 0
+): { item: OutlineItem; depth: number }[] {
+	return items.flatMap((item) => [
+		{ item, depth },
+		...flattenWithDepth(item.children, depth + 1)
+	]);
+}
+
 /** The first scene (not folder) in reading order, or null for a project with no scenes. */
 export function firstScene(items: OutlineItem[]): OutlineItem | null {
 	return flatten(items).find((i) => i.type !== 'folder') ?? null;
@@ -114,4 +124,52 @@ export function nameAt<T>(list: T[], index: string, pick: (t: T) => string): str
 
 export function labelColor(labels: LabelDef[], index: string): string {
 	return nameAt(labels, index, (l) => l.color);
+}
+
+export function isChapterItem(item: OutlineItem, labels: LabelDef[]): boolean {
+	const lname = nameAt(labels, item.label, (l) => l.name).toLowerCase();
+	return lname === 'chapter' || /^chapter\b/i.test(item.title);
+}
+
+/**
+ * Determine the parent folder ID when adding a 'folder', 'chapter', or 'scene'
+ * so that scenes always index under chapters rather than inline.
+ */
+export function resolveParentForAdd(
+	outline: readonly OutlineItem[],
+	labels: LabelDef[],
+	addingType: 'folder' | 'chapter' | 'scene',
+	active: OutlineItem | null
+): number | null {
+	if (addingType === 'scene') {
+		if (active) {
+			if (active.type === 'folder') return active.id;
+			if (active.parent_id !== null) return active.parent_id;
+		}
+		// Fallback: last folder in reading order so scenes index under a chapter/folder if one exists
+		const folders = flatten([...outline]).filter((i) => i.type === 'folder');
+		return folders.length > 0 ? folders[folders.length - 1].id : null;
+	}
+
+	if (addingType === 'chapter') {
+		if (!active) return null;
+		if (active.type === 'folder') {
+			// If the active folder is itself a Chapter, add the new Chapter as a sibling, not nested inside it
+			if (isChapterItem(active, labels)) return active.parent_id;
+			return active.id;
+		}
+		// Active is a scene: if its parent is a Chapter folder, add the new Chapter as a sibling of that Chapter
+		if (active.parent_id !== null) {
+			const parentFolder = findItem(outline, active.parent_id);
+			if (parentFolder && isChapterItem(parentFolder, labels)) {
+				return parentFolder.parent_id;
+			}
+			return active.parent_id;
+		}
+		return null;
+	}
+
+	// addingType === 'folder'
+	if (active?.type === 'folder') return active.id;
+	return active?.parent_id ?? null;
 }
