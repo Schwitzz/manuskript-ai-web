@@ -5,7 +5,7 @@ services:
   # database file". It also repairs folders left root-owned by an earlier failed start.
   prepare-data:
     build: .
-    image: manuskript-ai-web
+    image: moduskript-web
     user: "0:0"
     restart: "no"
     entrypoint:
@@ -17,9 +17,9 @@ services:
       - ./data/app:/data/app
       - ./data/templates:/data/templates
 
-  manuskript:
+  moduskript:
     build: .
-    image: manuskript-ai-web
+    image: moduskript-web
     restart: unless-stopped
     depends_on:
       prepare-data:
