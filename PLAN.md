@@ -3,7 +3,7 @@
 A self-hosted, single-user, phone-first web rewrite of the Manuskript AI fork.
 **Status (13 Oct 2026):** Phases 0-3 complete. Phase 4 (AI) now works end to end: a live chat against the llama.cpp server streams, uses the open scene as context and saves (see its section). Phase 5 done. Phase 6: outline, corkboard, whiteboard done; storyboard (flow diagram) replaced by whiteboard; storyline and drag-and-drop not started. Phase 7 (Google Drive) is **dropped**; files will be synced another way (see Phase 7). Next: Phase 8 UI (search, revisions, export/import), then Phase 9 hardening.
 
-**How this was last verified:** server 308 pytest, web 139 vitest, 18 Playwright (+1 live AI test, run on demand) (phone 390x844 and desktop 1440x900), svelte-check 0 errors. Run them with the commands in README.md.
+**How this was last verified:** server 308 pytest, web 135 vitest, 18 Playwright (+2 live AI tests, run on demand) (phone 390x844 and desktop 1440x900), svelte-check 0 errors. Run them with the commands in README.md.
 
 ## Progress Summary
 
@@ -17,7 +17,7 @@ A self-hosted, single-user, phone-first web rewrite of the Manuskript AI fork.
 | 5: characters, plots, world | ✅ Done | Full CRUD, search, inspector, general+summary, labels. Undo after delete now really re-creates the item on the server. Remaining: bulk actions, virtualised lists (Phase 6). |
 | 6: corkboard, outline, storyline | 🔄 Partial | Outline, Cards (corkboard), and Board (whiteboard) done and tested. Storyboard (flow diagram) was fully replaced by the whiteboard (free-form canvas, drag/zoom/pan via SvelteFlow). Not started: touch drag and drop, outline table, folder views, storyline, bulk actions, virtualised lists. |
 | 6b: project templates | ✅ Done | Save a project's structure as a template, start new projects from it. Not in the original plan. |
-| 6c: whiteboard, storyboard removal | ✅ Done | Board (whiteboard) replaces storyboard. Free-form canvas via `@xyflow/svelte` with shape/icon/note/scene-card nodes, toolbar, connection mode, localStorage persistence, and an icon picker. Old storyboard (`Cards` route) fully deleted. |
+| 6c: whiteboard, storyboard removal | ✅ Done | Board (whiteboard) replaces storyboard. Free-form canvas via `@xyflow/svelte` with shape/note/scene-card nodes (blank default shape labels, editable labels, hover + toggleable notes, icon node removed), centered toolbar, custom `DashedEdge` supporting 4 line styles (`solid`, `dash`, `dot`, `solid-dashed`) with live button preview that activates connection mode, and localStorage persistence. Old storyboard (`Cards` route) fully deleted. |
 | 7: Google Drive sync | ❌ Dropped | Decision 11 Oct 2026: not building Google integration. Project files will be synced another way (rsync, Syncthing or a mounted folder; see Phase 7). |
 | 8: export, import, search, goals, revisions | ⬜ Pending | **Server side is only partly done.** Search, revisions, `.msk` import and zip upload/download exist as API. Export (pandoc/WeasyPrint), compile and Markdown/OPML import do NOT exist yet (an earlier note here said they did). No UI for any of it. |
 | 9: hardening, backups, install guide | ⬜ Pending | Partly done early: see "Security fixes so far" in Phase 9. |
@@ -206,12 +206,12 @@ Done when: you can write and format a chapter on your phone and desktop, and des
 **Remaining Phase 3 items (post-core):**
 - [x] Spell check (browser built-in — custom dictionary server-side)
 - [x] Typewriter mode, line focus mode
-- [ ] Spell check custom dictionary (server-side word list)
-- [ ] Scene tabs (multiple open scenes)
-- [ ] Split view on wide screens
-- [ ] Paragraph style menu (acts on selected paragraphs)
-- [ ] Comment button
-- [ ] Full desktop keyboard shortcuts (Ctrl+B/I/K)
+- [x] Spell check custom dictionary (server-side word list)
+- [x] Scene tabs (multiple open scenes)
+- [x] Split view on wide screens
+- [x] Paragraph style menu (acts on selected paragraphs)
+- [x] Comment button
+- [x] Full desktop keyboard shortcuts (Ctrl+B/I/K)
 
 ---
 

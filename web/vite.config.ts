@@ -14,8 +14,19 @@ export default defineConfig({
 	server: {
 		// Proxy API requests to the backend during development.
 		proxy: {
-			'/api': API_URL,
-			'/auth': API_URL,
+			'/api': {
+				target: API_URL,
+				changeOrigin: true,
+			},
+			'/auth': {
+				target: API_URL,
+				changeOrigin: true,
+			},
+			'/api/auth': {
+				target: API_URL,
+				changeOrigin: true,
+				rewrite: (path) => path.replace(/^\/api\/auth/, ''),
+			},
 		}
 	},
 	define: {

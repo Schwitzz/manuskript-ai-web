@@ -97,25 +97,68 @@ test('whiteboard: add nodes to the canvas, link them, and keep them after a relo
 
 	// Drop two shapes from the add-node menu onto the canvas.
 	await page.getByTitle('Add node').click();
-	await page.getByRole('button', { name: 'Shape', exact: true }).click();
+	await page.getByRole('button', { name: 'Rectangle', exact: true }).click();
 	await expect(page.locator('.svelte-flow__node')).toHaveCount(1);
-	await expect(page.locator('.svelte-flow__node')).toContainText('Shape');
+
+	// Edit the shape's label and add a note after adding to the board.
+	await page.getByLabel('Shape label').fill('Protagonist');
+	await page.getByLabel('Shape note').fill('Secretly the heir');
+	await expect(page.locator('.svelte-flow__node').first()).toContainText('Protagonist');
+
+	// Toggle "Show notes" selector so the note is visible unobtrusively.
+	await page.getByTitle('Show notes').click();
+	await page.waitForTimeout(200);
+	await expect(page.locator('[role="note"]')).toContainText('Secretly the heir');
 
 	await page.getByTitle('Add node').click();
 	await page.getByRole('button', { name: 'Circle', exact: true }).click();
 	await expect(page.locator('.svelte-flow__node')).toHaveCount(2);
 
-	// Link the two nodes using Connection mode.
-	await page.getByTitle('Connection mode').click();
-	await page.locator('.svelte-flow__node').nth(0).click();
+	// Select a line style -> activates connection mode -> click node 1 then node 2 to draw edge.
+	await page.getByTitle('Line style').click();
+	await expect(page.getByRole('button', { name: 'Solid', exact: true })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Dash', exact: true })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Dot', exact: true })).toBeVisible();
+	await page.getByRole('button', { name: 'Solid dashed', exact: true }).click();
+	await expect(page.getByTitle('Line style')).toHaveAttribute('aria-pressed', 'true');
+
+	// Click first node, then second node to draw the line.
+	await page.locator('.svelte-flow__node').first().click();
 	await page.locator('.svelte-flow__node').nth(1).click();
-	await expect(page.locator('.svelte-flow__edge')).toHaveCount(1);
+
+	const edgePath = page.locator('.svelte-flow__edge-path');
+	await expect(edgePath).toHaveCount(1);
+	await expect(edgePath).toHaveAttribute('stroke-dasharray', '12 4 2 4');
+
+	// Select the rendered edge and verify all 4 line types render their stroke-dasharray on the SVG path.
+	await page.locator('.svelte-flow__edge').first().click({ force: true });
+
+	await page.getByTitle('Line style').click();
+	await page.getByRole('button', { name: 'Dash', exact: true }).click();
+	await expect(edgePath).toHaveAttribute('stroke-dasharray', '8 5');
+
+	await page.getByTitle('Line style').click();
+	await page.getByRole('button', { name: 'Dot', exact: true }).click();
+	await expect(edgePath).toHaveAttribute('stroke-dasharray', '2 5');
+
+	await page.getByTitle('Line style').click();
+	await page.getByRole('button', { name: 'Solid', exact: true }).click();
+	await expect(edgePath).not.toHaveAttribute('stroke-dasharray', /.+/);
+
+	await page.getByTitle('Line style').click();
+	await page.getByRole('button', { name: 'Solid dashed', exact: true }).click();
+	await expect(edgePath).toHaveAttribute('stroke-dasharray', '12 4 2 4');
+
+	// Verify the two nodes are present (second one is blank by design)
+	await expect(page.locator('.svelte-flow__node').first()).toContainText('Protagonist');
+	await expect(page.locator('.svelte-flow__node')).toHaveCount(2);
 
 	// Nodes and edges persist in localStorage and come back after a reload.
 	await page.reload();
 	await expect(page.getByTitle('Add node')).toBeVisible({ timeout: 10_000 });
 	await expect(page.locator('.svelte-flow__node')).toHaveCount(2);
-	await expect(page.locator('.svelte-flow__edge')).toHaveCount(1);
+	await expect(page.locator('.svelte-flow__edge-path')).toHaveCount(1);
+	await expect(page.locator('.svelte-flow__edge-path')).toHaveAttribute('stroke-dasharray', '12 4 2 4');
 });
 
 test('characters: create one in the UI, then undo a delete', async ({ page }) => {

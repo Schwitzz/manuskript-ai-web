@@ -7,7 +7,6 @@
 		SvelteFlow,
 		Background,
 		ConnectionMode,
-		MarkerType,
 		type Connection,
 		type Node,
 		type Edge,
@@ -15,24 +14,25 @@
 		type Viewport
 	} from '@xyflow/svelte';
 	import {
-		Square, Circle, Triangle, ArrowRight, Minus,
-		Type, Sparkles, Scissors, Layers, Link,
-		Map, Book, Flag, Eye, Clock, Compass,
-		Globe, Mountain, Sun, Cloud, Wind,
-		Flame, Droplets, Trash2, Plus,
-		Minimize, ZoomIn, ZoomOut
+		Square, Circle, Triangle, ArrowRight,
+		Type, Trash2, Plus,
+		Minimize, ZoomIn, ZoomOut, StickyNote
 	} from '@lucide/svelte';
+	import { LINE_TYPES } from '#lib/whiteboard/line-types';
 	import ShapeNode from './ShapeNode.svelte';
-	import IconNode from './IconNode.svelte';
 	import NoteNode from './NoteNode.svelte';
+	import DashedEdge from './DashedEdge.svelte';
 
 	const PROJECT = project.name || 'whiteboard';
 	const STORAGE_KEY = `msk_whiteboard_${PROJECT}`;
 
 	const nodeTypes: NodeTypes = {
 		shape: ShapeNode as unknown as NodeTypes['shape'],
-		icon: IconNode as unknown as NodeTypes['icon'],
 		note: NoteNode as unknown as NodeTypes['note']
+	};
+
+	const edgeTypes = {
+		dashed: DashedEdge
 	};
 
 	let canvasEl: HTMLDivElement | undefined = $state();
@@ -44,16 +44,60 @@
 	let toolbarMenuOpen = $state(false);
 	let connectionMode = $state(false);
 	let connectFromId = $state<string | null>(null);
-	let edgeArrow = $state(true);
+	let pointerDownNodeId = $state<string | null>(null);
 	let selectedNodeShape = $state('rectangle');
-	let selectedNodeIcon = $state('Sparkles');
+	let edgeLineType = $state<'solid' | 'dash' | 'dot' | 'solid-dashed'>('solid');
+	let showAllNotes = $state(false);
+	let lineTypeMenuOpen = $state(false);
+
+	function selectLineType(lineType: 'solid' | 'dash' | 'dot' | 'solid-dashed') {
+		edgeLineType = lineType;
+		lineTypeMenuOpen = false;
+		if (selectedEdgeId) {
+			edges = edges.map((e) =>
+				e.id === selectedEdgeId
+					? { ...e, type: 'dashed', data: { ...e.data, lineType } }
+					: e
+			);
+			save();
+		}
+		connectionMode = true;
+		connectFromId = null;
+	}
+
 	let error = $state('');
 	let viewport = $state<Viewport>({ x: 0, y: 0, zoom: 1 });
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
+	const selectedNode = $derived(selectedId ? (nodes.find((n) => n.id === selectedId) ?? null) : null);
+
+	function patchNodeData(nodeId: string, patch: { label?: string; note?: string }) {
+		nodes = nodes.map((n) =>
+			n.id === nodeId
+				? { ...n, data: { ...n.data, ...patch } }
+				: n
+		);
+		save();
+	}
+
+	function attachNodeCallbacks(rawNodes: Node[]): Node[] {
+		return rawNodes.map((n) => ({
+			...n,
+			data: {
+				...n.data,
+				showNotes: showAllNotes,
+				onUpdate: (patch: { label?: string; note?: string }) => patchNodeData(n.id, patch)
+			}
+		}));
+	}
+
 	function save() {
 		try {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes, edges, viewport }));
+			const serializableNodes = nodes.map((n) => {
+				const { onUpdate, ...restData } = (n.data ?? {}) as Record<string, unknown>;
+				return { ...n, data: restData };
+			});
+			localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes: serializableNodes, edges, viewport, showAllNotes }));
 		} catch {
 			error = 'Could not save whiteboard (storage full)';
 		}
@@ -64,8 +108,13 @@
 			const raw = localStorage.getItem(STORAGE_KEY);
 			if (raw) {
 				const data = JSON.parse(raw);
-				nodes = data.nodes || [];
-				edges = data.edges || [];
+				showAllNotes = Boolean(data.showAllNotes);
+				nodes = attachNodeCallbacks(data.nodes || []);
+				edges = (data.edges || []).map((e: Edge) => ({
+					...e,
+					type: 'dashed',
+					data: { lineType: e.data?.lineType ?? 'solid', ...e.data }
+				}));
 				if (data.viewport) viewport = data.viewport;
 			}
 		} catch {
@@ -90,31 +139,44 @@
 	function nextPosition(index: number) {
 		const col = index % 4;
 		const row = Math.floor(index / 4);
-		return { x: 100 + col * 150, y: 100 + row * 120 };
+		return { x: 80 + col * 150, y: 120 + row * 120 };
 	}
 
 	function addNode(type: string, label: string, shapeOverride?: string) {
 		const id = `node_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 		const pos = nextPosition(nodes.length);
 		const shape = shapeOverride ?? selectedNodeShape;
+		const baseData =
+			type === 'note'
+				? { text: label }
+				: { shape, label: label || '', note: '' };
 		const node: Node = {
 			id,
 			type,
 			position: pos,
-			data:
-				type === 'icon'
-					? { icon: selectedNodeIcon, label }
-					: type === 'note'
-						? { text: label }
-						: { shape, label }
+			data: {
+				...baseData,
+				showNotes: showAllNotes,
+				onUpdate: (patch: { label?: string; note?: string }) => patchNodeData(id, patch)
+			}
 		};
 		nodes = [...nodes, node];
 		toolbarOpen = false;
 		toolbarMenuOpen = false;
-		iconPickerOpen = false;
+		connectionMode = false;
+		connectFromId = null;
 		selectedId = id;
 		selectedEdgeId = null;
 		if (type === 'shape') selectedNodeShape = shape;
+		save();
+	}
+
+	function toggleShowAllNotes() {
+		showAllNotes = !showAllNotes;
+		nodes = nodes.map((n) => ({
+			...n,
+			data: { ...n.data, showNotes: showAllNotes }
+		}));
 		save();
 	}
 
@@ -127,16 +189,7 @@
 						data: {
 							...n.data,
 							shape: selectedNodeShape,
-							label:
-								n.data?.label === 'Shape' ||
-								n.data?.label === 'Rectangle' ||
-								n.data?.label === 'Circle' ||
-								n.data?.label === 'Triangle' ||
-								n.data?.label === 'Arrow'
-									? selectedNodeShape === 'rectangle'
-										? 'Shape'
-										: selectedNodeShape.charAt(0).toUpperCase() + selectedNodeShape.slice(1)
-									: n.data?.label
+							label: n.data?.label && n.data?.label !== '' ? n.data?.label : ''
 						}
 					}
 				: n
@@ -151,9 +204,8 @@
 			target,
 			sourceHandle: sourceHandle ?? null,
 			targetHandle: targetHandle ?? null,
-			type: 'default',
-			style: 'stroke: var(--accent); stroke-width: 2px;',
-			markerEnd: edgeArrow ? { type: MarkerType.ArrowClosed, color: 'var(--accent)' } : undefined
+			type: 'dashed',
+			data: { lineType: edgeLineType }
 		};
 	}
 
@@ -164,41 +216,87 @@
 		save();
 	}
 
-	function handleNodeClick({ node }: { node: Node; event: MouseEvent | TouchEvent }) {
-		if (connectionMode) {
-			if (!connectFromId) {
-				connectFromId = node.id;
-				selectedId = node.id;
-				return;
-			}
-			if (connectFromId !== node.id) {
-				edges = [...edges, buildEdge(connectFromId, node.id)];
-				connectFromId = null;
-				save();
-				return;
-			}
+	function getNodeIdFromTarget(target: EventTarget | null): string | null {
+		const el = target instanceof Element ? target.closest('.svelte-flow__node') : null;
+		return el?.getAttribute('data-id') ?? null;
+	}
+
+	function isHandleTarget(target: EventTarget | null): boolean {
+		return target instanceof Element && Boolean(target.closest('.svelte-flow__handle'));
+	}
+
+	function handleCanvasPointerDown(e: PointerEvent) {
+		if (!connectionMode || isHandleTarget(e.target)) {
+			pointerDownNodeId = null;
+			return;
 		}
+		pointerDownNodeId = getNodeIdFromTarget(e.target);
+	}
+
+	function handleCanvasPointerUp(e: PointerEvent) {
+		if (!connectionMode || isHandleTarget(e.target)) {
+			pointerDownNodeId = null;
+			return;
+		}
+		const hitEl =
+			(e.clientX !== 0 || e.clientY !== 0) && typeof document !== 'undefined'
+				? document.elementFromPoint(e.clientX, e.clientY)
+				: null;
+		const upNodeId = getNodeIdFromTarget(hitEl) ?? getNodeIdFromTarget(e.target);
+		const downNodeId = pointerDownNodeId;
+		pointerDownNodeId = null;
+
+		if (!upNodeId) return;
+
+		// Dragged from one node onto another node
+		if (downNodeId && downNodeId !== upNodeId) {
+			edges = [...edges, buildEdge(downNodeId, upNodeId)];
+			connectFromId = null;
+			save();
+			return;
+		}
+
+		// Two-click connection: first node -> second node
+		if (!connectFromId) {
+			connectFromId = upNodeId;
+			selectedId = upNodeId;
+			return;
+		}
+		if (connectFromId !== upNodeId) {
+			edges = [...edges, buildEdge(connectFromId, upNodeId)];
+			connectFromId = null;
+			save();
+		}
+	}
+
+	function handleNodeClick({ node }: { node: Node; event: MouseEvent | TouchEvent }) {
+		if (connectionMode) return;
 		selectedId = node.id;
 		selectedEdgeId = null;
 		if (node.type === 'shape' && typeof node.data?.shape === 'string') {
 			selectedNodeShape = node.data.shape;
-		} else if (node.type === 'icon' && typeof node.data?.icon === 'string') {
-			selectedNodeIcon = node.data.icon;
 		}
 	}
 
 	function handleEdgeClick({ edge }: { edge: Edge; event: MouseEvent }) {
 		selectedEdgeId = edge.id;
 		selectedId = null;
+		connectionMode = false;
+		connectFromId = null;
+		const lt = edge.data?.lineType as 'solid' | 'dash' | 'dot' | 'solid-dashed' | undefined;
+		if (lt && LINE_TYPES.some((t) => t.id === lt)) {
+			edgeLineType = lt;
+		}
 	}
 
 	function handlePaneClick() {
 		selectedId = null;
 		selectedEdgeId = null;
+		connectionMode = false;
 		connectFromId = null;
 		toolbarOpen = false;
 		toolbarMenuOpen = false;
-		iconPickerOpen = false;
+		lineTypeMenuOpen = false;
 	}
 
 	function deleteSelected() {
@@ -227,31 +325,6 @@
 	function fitView() {
 		viewport = { x: 0, y: 0, zoom: 1 };
 	}
-
-	function toggleConnectionMode() {
-		connectionMode = !connectionMode;
-		connectFromId = null;
-	}
-
-	let iconPickerOpen = $state(false);
-	const iconMap: Record<string, typeof Sparkles> = {
-		Sparkles, Type, Notebook: Sparkles, Scissors, Layers, Link,
-		Map, Book, Flag, Eye, Clock, Compass,
-		Globe, Mountain, Sun, Cloud, Wind,
-		Flame, Droplets, Trash2, Plus, Square, Circle, Triangle, ArrowRight
-	};
-	const iconNames = Object.keys(iconMap);
-
-	function selectIcon(name: string) {
-		selectedNodeIcon = name;
-		if (selectedId) {
-			nodes = nodes.map((n) =>
-				n.id === selectedId ? { ...n, data: { ...n.data, icon: name, label: name } } : n
-			);
-			save();
-		}
-		iconPickerOpen = false;
-	}
 </script>
 
 <AppShell title="Board">
@@ -267,20 +340,17 @@
 					{#if toolbarOpen}
 						<div class="toolbar-menu">
 							<div class="toolbar-menu-title">Add node</div>
-							<button type="button" class="toolbar-menu-item" onclick={() => addNode('shape', 'Shape', 'rectangle')}>
-								<Square size={16} /> Shape
+							<button type="button" class="toolbar-menu-item" onclick={() => addNode('shape', '', 'rectangle')}>
+								<Square size={16} /> Rectangle
 							</button>
-							<button type="button" class="toolbar-menu-item" onclick={() => addNode('shape', 'Circle', 'circle')}>
+							<button type="button" class="toolbar-menu-item" onclick={() => addNode('shape', '', 'circle')}>
 								<Circle size={16} /> Circle
 							</button>
-							<button type="button" class="toolbar-menu-item" onclick={() => addNode('shape', 'Triangle', 'triangle')}>
+							<button type="button" class="toolbar-menu-item" onclick={() => addNode('shape', '', 'triangle')}>
 								<Triangle size={16} /> Triangle
 							</button>
-							<button type="button" class="toolbar-menu-item" onclick={() => addNode('shape', 'Arrow', 'arrow')}>
+							<button type="button" class="toolbar-menu-item" onclick={() => addNode('shape', '', 'arrow')}>
 								<ArrowRight size={16} /> Arrow
-							</button>
-							<button type="button" class="toolbar-menu-item" onclick={() => addNode('icon', 'Icon')}>
-								<Sparkles size={16} /> Icon
 							</button>
 							<button type="button" class="toolbar-menu-item" onclick={() => addNode('note', 'Note')}>
 								<Type size={16} /> Note
@@ -322,47 +392,70 @@
 					</div>
 				{/if}
 
-				<!-- Icon selector (when icon node selected) -->
-				{#if selectedId && nodes.find((n) => n.id === selectedId)?.type === 'icon'}
-					<div class="relative">
-						<button type="button" class="toolbar-btn" title="Icon" onclick={() => (iconPickerOpen = !iconPickerOpen)}>
-							<Sparkles size={18} />
-						</button>
-						{#if iconPickerOpen}
-							<div class="toolbar-menu icon-picker">
-								{#each iconNames as name}
-									{@const Comp = iconMap[name]}
-									<button type="button" class="icon-picker-btn" onclick={() => selectIcon(name)} title={name}>
-										<Comp size={16} />
-									</button>
-								{/each}
-							</div>
-						{/if}
-					</div>
-				{/if}
-
-				<!-- Connection mode (click two nodes or drag between handles) -->
-				<button type="button" class="toolbar-btn {connectionMode ? 'active' : ''}" title="Connection mode" onclick={toggleConnectionMode}>
-					<Link size={18} />
-				</button>
-
-				<!-- Connector style: Arrow vs Line -->
-				<button
-					type="button"
-					class="toolbar-btn"
-					title={edgeArrow ? 'Connector: Arrow (click for Line)' : 'Connector: Line (click for Arrow)'}
-					onclick={() => (edgeArrow = !edgeArrow)}
-				>
-					{#if edgeArrow}
-						<ArrowRight size={18} />
-					{:else}
-						<Minus size={18} />
+				<!-- Line style selector (shows current style preview + activates connection mode) -->
+				<div class="relative">
+					<button
+						type="button"
+						class="toolbar-btn {connectionMode ? 'active' : ''}"
+						title="Line style"
+						aria-label="Line style"
+						aria-pressed={connectionMode}
+						onclick={() => (lineTypeMenuOpen = !lineTypeMenuOpen)}
+					>
+						<svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
+							<line
+								x1="1"
+								y1="5"
+								x2="21"
+								y2="5"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-dasharray={LINE_TYPES.find((t) => t.id === edgeLineType)?.dasharray || undefined}
+							/>
+						</svg>
+					</button>
+					{#if lineTypeMenuOpen}
+						<div class="toolbar-menu">
+							<div class="toolbar-menu-title">Line style</div>
+							{#each LINE_TYPES as lt (lt.id)}
+								<button
+									type="button"
+									class="toolbar-menu-item {edgeLineType === lt.id && connectionMode ? 'active-item' : ''}"
+									onclick={() => selectLineType(lt.id)}
+								>
+									<svg width="28" height="12" viewBox="0 0 28 12" aria-hidden="true">
+										<line
+											x1="1"
+											y1="6"
+											x2="27"
+											y2="6"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-dasharray={lt.dasharray || undefined}
+										/>
+									</svg>
+									<span>{lt.label}</span>
+								</button>
+							{/each}
+						</div>
 					{/if}
-				</button>
+				</div>
 
 				<!-- Delete selected -->
 				<button type="button" class="toolbar-btn" title="Delete selected" onclick={deleteSelected}>
 					<Trash2 size={18} />
+				</button>
+
+				<!-- Show notes selector -->
+				<button
+					type="button"
+					class="toolbar-btn {showAllNotes ? 'active' : ''}"
+					title="Show notes"
+					aria-label="Show notes"
+					aria-pressed={showAllNotes}
+					onclick={toggleShowAllNotes}
+				>
+					<StickyNote size={18} />
 				</button>
 
 				<!-- Zoom -->
@@ -379,28 +472,55 @@
 
 			{#if connectionMode}
 				<div class="toolbar-hint">
-					{connectFromId ? 'Click target node to link' : 'Click first node (or drag between handles)'}
+					{connectFromId ? 'Click target node to link' : 'Click first node to link'}
+				</div>
+			{:else if selectedNode && selectedNode.type === 'shape'}
+				<div class="node-inspector">
+					<input
+						type="text"
+						class="node-inspector-input"
+						aria-label="Shape label"
+						placeholder="Label"
+						value={String(selectedNode.data?.label ?? '')}
+						oninput={(e) => patchNodeData(selectedNode.id, { label: e.currentTarget.value })}
+					/>
+					<input
+						type="text"
+						class="node-inspector-input"
+						aria-label="Shape note"
+						placeholder="Add note..."
+						value={String(selectedNode.data?.note ?? '')}
+						oninput={(e) => patchNodeData(selectedNode.id, { note: e.currentTarget.value })}
+					/>
 				</div>
 			{/if}
 		</div>
 
 		<!-- Canvas -->
-		<div class="canvas-wrapper">
+		<div
+			class="canvas-wrapper"
+			role="presentation"
+			onpointerdown={handleCanvasPointerDown}
+			onpointerup={handleCanvasPointerUp}
+		>
 			<SvelteFlow
 				bind:viewport
 				bind:nodes
 				bind:edges
 				{nodeTypes}
+				{edgeTypes}
 				onconnect={onConnect}
 				onnodeclick={handleNodeClick}
 				onedgeclick={handleEdgeClick}
 				onpaneclick={handlePaneClick}
+				nodesDraggable={!connectionMode}
+				panOnDrag={!connectionMode}
+				nodeClickDistance={5}
 				clickConnect={true}
 				connectionMode={ConnectionMode.Loose}
 				defaultEdgeOptions={{
-					type: 'default',
-					style: 'stroke: var(--accent); stroke-width: 2px;',
-					markerEnd: edgeArrow ? { type: MarkerType.ArrowClosed, color: 'var(--accent)' } : undefined
+					type: 'dashed',
+					data: { lineType: edgeLineType }
 				}}
 				proOptions={{ hideAttribution: true }}
 			>
@@ -425,10 +545,12 @@
 	.toolbar {
 		position: absolute;
 		top: .75rem;
-		left: .75rem;
+		left: 50%;
+		transform: translateX(-50%);
 		z-index: 20;
 		display: flex;
 		flex-direction: column;
+		align-items: center;
 		gap: .35rem;
 		overflow: visible;
 	}
@@ -442,6 +564,7 @@
 		padding: .25rem;
 		box-shadow: 0 4px 12px rgba(0,0,0,.2);
 		overflow: visible;
+		justify-content: center;
 	}
 
 	.toolbar-hint {
@@ -508,25 +631,7 @@
 		text-align: left;
 	}
 	.toolbar-menu-item:hover { background: var(--border); }
-
-	.icon-picker {
-		display: grid;
-		grid-template-columns: repeat(5, 1fr);
-		gap: .25rem;
-	}
-	.icon-picker-btn {
-		width: 36px;
-		height: 36px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border: none;
-		border-radius: .375rem;
-		background: transparent;
-		color: var(--text);
-		cursor: pointer;
-	}
-	.icon-picker-btn:hover { background: var(--border); }
+	.toolbar-menu-item.active-item { background: var(--accent); color: var(--accent-text); }
 
 	.canvas-wrapper {
 		width: 100%;
@@ -545,11 +650,36 @@
 	}
 
 	:global(.svelte-flow__node) { cursor: move; }
-	:global(.svelte-flow__edge-path) { stroke-width: 2; }
+	:global(.svelte-flow__edge-path) { stroke: var(--accent, #3b82f6); stroke-width: 2; }
 	:global(.svelte-flow__handle) {
 		width: 10px;
 		height: 10px;
 		background: var(--accent);
 		border: 2px solid var(--surface);
+	}
+
+	.node-inspector {
+		display: flex;
+		flex-wrap: wrap;
+		gap: .35rem;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: .5rem;
+		padding: .35rem;
+		box-shadow: 0 4px 12px rgba(0,0,0,.2);
+	}
+
+	.node-inspector-input {
+		font-size: .75rem;
+		padding: .3rem .5rem;
+		border: 1px solid var(--border);
+		border-radius: .375rem;
+		background: var(--bg);
+		color: var(--text);
+		min-width: 120px;
+	}
+	.node-inspector-input:focus {
+		outline: 1.5px solid var(--accent);
+		border-color: var(--accent);
 	}
 </style>

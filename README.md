@@ -12,11 +12,11 @@ Licence: GPL-3.0 (see COPYING). Parts are derived from Manuskript
 ## Development
 
 ```bash
-# server (tests: 316)
+# server (tests: 308)
 cd server && uv sync && uv run pytest
 
-# web app (type check, build, e2e at 390x844 and 1440x900)
-cd web && npm install && npm run check && npm run build && npx playwright test
+# web app (type check, unit tests: 135, build, e2e: 18 at 390x844 and 1440x900)
+cd web && npm install && npm run check && npm test && npm run build && npx playwright test
 
 # run the built app locally
 cd server && MSK_DATA_DIR=/tmp/msk-dev MSK_COOKIE_SECURE=false MSK_STATIC_DIR=../web/build uv run uvicorn app.main:app --port 8765
