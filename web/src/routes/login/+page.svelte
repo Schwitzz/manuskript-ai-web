@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { api, ApiError } from '#lib/api.ts';
 	import { auth } from '#lib/stores/auth.svelte.ts';
-	import { BookOpen, UserPlus, LogIn, ShieldCheck } from '@lucide/svelte';
+	import { BookOpen, ShieldCheck } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 
 	let username = $state('');
@@ -9,12 +9,11 @@
 	let code = $state('');
 	let error = $state('');
 	let busy = $state(false);
-	let manualCreateMode = $state(false);
 
 	const mode = $derived(
 		auth.status?.totp_pending
 			? 'totp'
-			: auth.status?.setup_required || manualCreateMode
+			: auth.status?.setup_required
 				? 'setup'
 				: 'login'
 	);
@@ -34,23 +33,7 @@
 		busy = true;
 		try {
 			if (mode === 'setup') {
-				const res = await fetch('/api/auth/setup', {
-					method: 'POST',
-					headers: {
-						'content-type': 'application/json',
-						'x-allow-local-signup': '1'
-					},
-					credentials: 'same-origin',
-					body: JSON.stringify({ username: cleanUser, password })
-				});
-				if (!res.ok) {
-					let msg = res.statusText;
-					try {
-						const j = await res.json();
-						msg = typeof j.detail === 'string' ? j.detail : msg;
-					} catch {}
-					throw new ApiError(res.status, msg);
-				}
+				await api('POST', '/api/auth/setup', { username: cleanUser, password });
 			} else if (mode === 'totp') {
 				await api('POST', '/api/auth/totp/verify', { code });
 			} else {
@@ -77,31 +60,9 @@
 		</div>
 	</div>
 
-	{#if mode !== 'totp' && !auth.status?.setup_required}
-		<div class="flex gap-1 rounded-lg border p-1" style="border-color: var(--border); background: var(--surface)">
-			<button
-				type="button"
-				class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-medium"
-				style="background: {!manualCreateMode ? 'var(--accent)' : 'transparent'}; color: {!manualCreateMode ? 'var(--accent-text)' : 'var(--text)'}"
-				onclick={() => { manualCreateMode = false; error = ''; }}
-			>
-				<LogIn size={14} /> Sign In
-			</button>
-			<button
-				type="button"
-				class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-medium"
-				style="background: {manualCreateMode ? 'var(--accent)' : 'transparent'}; color: {manualCreateMode ? 'var(--accent-text)' : 'var(--text)'}"
-				onclick={() => { manualCreateMode = true; error = ''; }}
-			>
-				<UserPlus size={14} /> Create Account
-			</button>
-		</div>
-	{/if}
-
-	<form onsubmit={submit} class="flex flex-col gap-4 rounded-xl border p-5" style="border-color: var(--border); background: var(--surface)">
+	<form onsubmit={submit} class="flex flex-col gap-4 rounded-xl border p-5" style="border-color: var(--border); background: var(--surface)" novalidate>
 		<p class="text-sm" style="color: var(--muted)">
-			{#if auth.status?.setup_required}Create your account. This only works once.
-			{:else if mode === 'setup'}Create a new local account and sign in.
+			{#if mode === 'setup'}Welcome to Moduskript! Create your primary account. This only works once.
 			{:else if mode === 'totp'}Enter the 6-digit code from your authenticator app, or a recovery code.
 			{:else}Log in to continue.{/if}
 		</p>
@@ -113,8 +74,9 @@
 					class="rounded-lg border px-3 py-2"
 					style="background: var(--bg); border-color: var(--border); color: var(--text)"
 					bind:value={username}
-					autocomplete="username"
+					autocomplete="off"
 					autocapitalize="off"
+					spellcheck="false"
 					required
 				/>
 			</label>
@@ -125,8 +87,7 @@
 					style="background: var(--bg); border-color: var(--border); color: var(--text)"
 					type="password"
 					bind:value={password}
-					autocomplete={mode === 'setup' ? 'new-password' : 'current-password'}
-					minlength={mode === 'setup' ? 10 : 1}
+					autocomplete="off"
 					required
 				/>
 			</label>
@@ -138,7 +99,7 @@
 					style="background: var(--bg); border-color: var(--border); color: var(--text)"
 					bind:value={code}
 					inputmode="numeric"
-					autocomplete="one-time-code"
+					autocomplete="off"
 					required
 				/>
 			</label>

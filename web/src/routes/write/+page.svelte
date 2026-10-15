@@ -78,7 +78,7 @@ let sceneInfo: OutlineItem | null = $state(null);
 let labels: LabelDef[] = $state([]);
 let statusList: string[] = $state([]);
 
-// Redirect to login if not authenticated
+// Redirect to login if not authenticated; auto-select first available project if none selected
 onMount(async () => {
 	if (!auth.status?.authenticated) {
 		goto('/login', { replaceState: true });
@@ -87,6 +87,9 @@ onMount(async () => {
 	try {
 		readableMode = localStorage.getItem('msk_readable_mode') === '1';
 	} catch {}
+	if (!project.name) {
+		await project.fetchProjects();
+	}
 	await loadDocument();
 });
 

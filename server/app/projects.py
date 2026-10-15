@@ -47,14 +47,38 @@ def list_projects() -> list[dict]:
     if not root.is_dir():
         return []
     out = []
-    for d in sorted(root.iterdir(), key=lambda p: p.name.lower()):
-        if d.is_dir() and not d.name.startswith(".") and (d / "MANUSKRIPT").exists():
-            title = d.name
-            try:
-                title = Project.load(d).infos.get("Title") or d.name
-            except Exception:  # a broken project must not hide the others
-                pass
-            out.append({"name": d.name, "title": title})
+    seen = set()
+
+    def _scan_dir(directory: Path):
+        try:
+            entries = sorted(directory.iterdir(), key=lambda p: p.name.lower())
+        except OSError:
+            return
+        for d in entries:
+            if not d.is_dir() or d.name.startswith("."):
+                continue
+            if (d / "MANUSKRIPT").exists() or ((d / "infos.txt").exists() and (d / "outline").is_dir()):
+                if not (d / "MANUSKRIPT").exists():
+                    try:
+                        (d / "MANUSKRIPT").write_text("1", encoding="utf8")
+                    except OSError:
+                        pass
+                msk_marker = d.with_name(d.name + ".msk")
+                if not msk_marker.exists():
+                    try:
+                        msk_marker.write_text("1", encoding="utf8")
+                    except OSError:
+                        pass
+                if d.name not in seen:
+                    seen.add(d.name)
+                    title = d.name
+                    try:
+                        title = Project.load(d).infos.get("Title") or d.name
+                    except Exception:
+                        pass
+                    out.append({"name": d.name, "title": title})
+
+    _scan_dir(root)
     return out
 
 

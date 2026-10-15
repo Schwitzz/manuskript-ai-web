@@ -10,7 +10,16 @@ let selectedProjectName = $state<string | null>(null);
 async function fetchProjects(): Promise<ProjectItem[]> {
 	try {
 		const data = await call('GET /api/projects');
-		return (data as any).projects;
+		const list = ((data as any).projects ?? []) as ProjectItem[];
+		if (list.length > 0) {
+			const exists = list.some((p) => p.name === selectedProjectName);
+			if (!selectedProjectName || !exists) {
+				select(list[0].name);
+			}
+		} else if (selectedProjectName) {
+			select('');
+		}
+		return list;
 	} catch {
 		return [];
 	}

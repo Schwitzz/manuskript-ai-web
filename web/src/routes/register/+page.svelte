@@ -85,42 +85,40 @@
 		{/if}
 	</section>
 
-	<form onsubmit={submit} class="flex flex-col gap-4">
+	<form onsubmit={submit} class="flex flex-col gap-4" novalidate>
 		<p style="color: var(--muted)">Create a new account to log in with.</p>
 
 		<label class="flex flex-col gap-1">
 			<span class="text-sm">Username</span>
 			<input
-				class="rounded-lg border px-3"
+				class="rounded-lg border px-3 py-2"
 				style="background: var(--surface); border-color: var(--border)"
 				bind:value={username}
-				autocomplete="username"
+				autocomplete="off"
 				autocapitalize="off"
+				spellcheck="false"
 				required
-				minlength={3}
-				maxlength={64}
 			/>
 		</label>
 		<label class="flex flex-col gap-1">
 			<span class="text-sm">Password (at least 10 characters)</span>
 			<input
-				class="rounded-lg border px-3"
+				class="rounded-lg border px-3 py-2"
 				style="background: var(--surface); border-color: var(--border)"
 				type="password"
 				bind:value={password}
-				autocomplete="new-password"
-				minlength={10}
+				autocomplete="off"
 				required
 			/>
 		</label>
 		<label class="flex flex-col gap-1">
 			<span class="text-sm">Confirm password</span>
 			<input
-				class="rounded-lg border px-3"
+				class="rounded-lg border px-3 py-2"
 				style="background: var(--surface); border-color: var(--border)"
 				type="password"
 				bind:value={confirmPassword}
-				autocomplete="new-password"
+				autocomplete="off"
 				required
 			/>
 		</label>

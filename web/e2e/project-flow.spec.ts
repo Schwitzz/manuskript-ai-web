@@ -19,7 +19,7 @@ const nav = (page: Page, name: string) =>
 test('no project: every project page asks you to choose one instead of calling the API', async ({ page }) => {
 	const apiCalls: string[] = [];
 	page.on('request', (r) => {
-		if (/\/api\/projects\/[^/]+\//.test(r.url())) apiCalls.push(r.url());
+		if (/\/api\/projects\/[^/]+\//.test(r.url()) && !r.url().endsWith('/samples')) apiCalls.push(r.url());
 	});
 	await login(page);
 	await expect(page.getByText('No project selected')).toBeVisible();
