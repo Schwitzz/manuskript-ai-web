@@ -14,6 +14,7 @@ import { searchKeymap } from '@codemirror/search';
 import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { lintKeymap } from '@codemirror/lint';
 import type { Extension } from '@codemirror/state';
+import { readableMarkdownExtension } from '#lib/editor/readable-markdown.ts';
 import { project } from '#lib/stores/project.svelte.ts';
 import { auth } from '#lib/stores/auth.svelte.ts';
 import { goto } from '$app/navigation';
@@ -45,7 +46,7 @@ return EditorView.updateListener.of(() => {
 // Paragraph focus would require complex decoration logic - skipping for now
 });
 }
-import { Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, Quote, List, ListOrdered, Link as LinkIcon, Undo2, Redo2, Search, Type, AlignLeft, AlignCenter, AlignRight, Save, Eye, Check, Sparkles, Info } from '@lucide/svelte';
+import { Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, Quote, List, ListOrdered, Link as LinkIcon, Undo2, Redo2, Search, Type, AlignLeft, AlignCenter, AlignRight, Save, Eye, Check, Sparkles, Info, Code, BookOpen } from '@lucide/svelte';
 
 let currentProject = $derived(project.name);
 let docId = $state(0);
@@ -64,6 +65,7 @@ let sessionCount = $derived(Math.max(0, wordCount - sessionStartWordCount));
 let showToolbar = $state(true);
 let showWordCount = $state(true);
 let showTypewriter = $state(false);
+let readableMode = $state(false);
 let focusMode = $state<'none' | 'line'>('none');
 let searchOpen = $state(false);
 let version = $state('');
@@ -82,6 +84,9 @@ onMount(async () => {
 		goto('/login', { replaceState: true });
 		return;
 	}
+	try {
+		readableMode = localStorage.getItem('msk_readable_mode') === '1';
+	} catch {}
 	await loadDocument();
 });
 
@@ -133,6 +138,7 @@ indentWithTab,
 ]),
 history(),
 markdown({ base: markdownLanguage, codeLanguages: undefined }),
+readableMarkdownExtension(() => readableMode),
 typewriterMode(),
 focusModeExtension(focusMode),
 EditorView.theme({
@@ -147,7 +153,16 @@ EditorView.theme({
 '.cm-panel': { background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '8px' },
 '.cm-tooltip': { background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' },
 '.cm-focusDim': { opacity: '0.25', filter: 'blur(0.3px)' },
-'.cm-focusLine': { background: 'var(--accent)', color: 'var(--accent-bg)' }
+'.cm-focusLine': { background: 'var(--accent)', color: 'var(--accent-bg)' },
+'.cm-readable-h1': { fontSize: '1.65em', fontWeight: '700', color: 'var(--accent)' },
+'.cm-readable-h2': { fontSize: '1.4em', fontWeight: '700', color: 'var(--accent)' },
+'.cm-readable-h3': { fontSize: '1.2em', fontWeight: '600', color: 'var(--accent)' },
+'.cm-readable-h4': { fontSize: '1.08em', fontWeight: '600', color: 'var(--accent)' },
+'.cm-readable-bold': { fontWeight: '700' },
+'.cm-readable-italic': { fontStyle: 'italic' },
+'.cm-readable-strike': { textDecoration: 'line-through', opacity: '0.75' },
+'.cm-readable-code': { fontFamily: 'monospace', background: 'var(--surface)', padding: '0.1em 0.3em', borderRadius: '4px' },
+'.cm-readable-quote': { fontStyle: 'italic', color: 'var(--muted)', borderLeft: '3px solid var(--accent)', paddingLeft: '0.5rem' }
 })
 ];
 }
@@ -289,6 +304,17 @@ showTypewriter = !showTypewriter;
 if (showTypewriter) showToolbar = false; // hide toolbar for distraction-free mode
 }
 
+function toggleReadableMode() {
+readableMode = !readableMode;
+try {
+	localStorage.setItem('msk_readable_mode', readableMode ? '1' : '0');
+} catch {}
+if (view) {
+	// Dispatch an empty selection update so the readable decoration plugin recomputes immediately
+	view.dispatch({ selection: view.state.selection });
+}
+}
+
 async function loadDocument() {
 if (!currentProject) {
 error = 'No project selected';
@@ -414,6 +440,23 @@ stroke-dasharray={circumference} stroke-dashoffset={strokeDashoffset} class="tra
 <span class="text-[9px] font-medium" style="color: var(--muted)">{sessionCount}/{sessionGoal}</span>
 </div>
 <div class="flex-1"></div>
+<button
+	class="tap flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium"
+	type="button"
+	onclick={toggleReadableMode}
+	title={readableMode ? 'Readable mode (click to show Markdown code)' : 'MD Code visible (click for Readable mode)'}
+	aria-label="Toggle Markdown code or readable mode"
+	aria-pressed={readableMode}
+	style="background: {readableMode ? 'var(--accent)' : 'transparent'}; color: {readableMode ? 'var(--accent-text)' : 'var(--muted)'}; border: 1px solid var(--border)"
+>
+	{#if readableMode}
+		<BookOpen size={13} />
+		<span>Readable</span>
+	{:else}
+		<Code size={13} />
+		<span>MD Code</span>
+	{/if}
+</button>
 <button class="tap rounded p-1" type="button" onclick={toggleTypewriter}>
 {#if showTypewriter}<Eye size={16} style="color: var(--accent)" />{:else}<Eye size={16} style="color: var(--muted)" />{/if}
 </button>

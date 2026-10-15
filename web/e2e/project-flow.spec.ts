@@ -43,8 +43,21 @@ test('create a project, open it in the editor, and use the outline', async ({ pa
 	await expect(page.getByRole('alert')).toHaveCount(0);
 	await expect(page.locator('.cm-content')).toBeVisible();
 	await page.locator('.cm-content').click();
-	await page.keyboard.type('It was a dark and stormy night.');
+	await page.keyboard.type('# Act One\n**Bold** and dark and stormy night.');
 	await expect(page.getByText(/^Saved/)).toBeVisible({ timeout: 10_000 });
+
+	// Toggle between MD Code visible and Readable mode on the Write page.
+	const modeBtn = page.getByRole('button', { name: 'Toggle Markdown code or readable mode' });
+	await expect(modeBtn).toContainText('MD Code');
+	await modeBtn.click();
+	await expect(modeBtn).toContainText('Readable');
+	await expect(modeBtn).toHaveAttribute('aria-pressed', 'true');
+	// Line 1 ("# Act One") is inactive while cursor is on Line 2, so it gets .cm-readable-h1
+	await expect(page.locator('.cm-readable-h1')).toContainText('Act One');
+	// Switch back to MD Code mode
+	await modeBtn.click();
+	await expect(modeBtn).toContainText('MD Code');
+	await expect(modeBtn).toHaveAttribute('aria-pressed', 'false');
 
 	// Outline shows the project, not a hardcoded one, with the typed scene in it.
 	await nav(page, 'Outline');
