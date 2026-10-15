@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inSubtree, moveItem, sameParentPosition } from './dnd.ts';
+import { computeFlatTableMove, inSubtree, moveItem, sameParentPosition } from './dnd.ts';
 import { toItems, type OutlineItem } from './outline.ts';
 import type { OutlineItemOut } from './api-types.ts';
 
@@ -86,5 +86,18 @@ describe('moveItem', () => {
 	it('throws for an unknown item or folder', () => {
 		expect(() => moveItem(tree(), 99, null, 0)).toThrow(/Unknown outline item/);
 		expect(() => moveItem(tree(), 2, 99, 0)).toThrow(/Unknown folder/);
+	});
+});
+
+describe('computeFlatTableMove', () => {
+	it('reorders scenes within a folder or moves a scene into another folder in flat table view', () => {
+		const items = tree();
+		// Flat order: [Draft(1), One(2), Two(3), Free(4)]
+		// Move Two(3) above One(2) (flat index 1, right below Draft(1))
+		expect(computeFlatTableMove(items, 3, 1)).toEqual({ toParent: 1, position: 0 });
+		// Move One(2) below Two(3) (flat index 2, right below Two(3))
+		expect(computeFlatTableMove(items, 2, 2)).toEqual({ toParent: 1, position: 1 });
+		// Move Free(4) right under Draft(1) (flat index 1)
+		expect(computeFlatTableMove(items, 4, 1)).toEqual({ toParent: 1, position: 0 });
 	});
 });

@@ -17,14 +17,14 @@
 		type OutlineItem
 	} from '#lib/outline.ts';
 	import type { NewItem } from '#lib/api-types.ts';
-	import { moveItem, inSubtree, sameParentPosition } from '#lib/dnd.ts';
+	import { computeFlatTableMove, moveItem, inSubtree, sameParentPosition } from '#lib/dnd.ts';
 	import Sortable from 'sortablejs';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		ListTree, Table2, Columns, SortAsc, SortDesc,
-		Trash2, Folder, FileText, BookOpen, Plus, StickyNote, X
+		Trash2, Folder, FileText, BookOpen, Plus, StickyNote, X, GripVertical
 	} from '@lucide/svelte';
 
 	const PROJECT = project.name ?? '';
@@ -161,70 +161,144 @@
 	// ─── Drag-and-drop ─────────────────────────────────────────────────────────
 	const instances: Sortable[] = [];
 
+	function restoreDomNode(evt: Sortable.SortableEvent) {
+		const ref = evt.from.children[evt.oldIndex ?? 0] ?? null;
+		if (evt.item.parentNode !== evt.from || ref !== evt.item) {
+			evt.from.insertBefore(evt.item, ref);
+		}
+	}
+
+	function persistMove(id: number, toParent: number | null, position: number) {
+		let next: OutlineItem[];
+		try {
+			next = moveItem(outline, id, toParent, position);
+		} catch {
+			void load();
+			return;
+		}
+		outline = next;
+		if (toParent !== null && !expanded.has(String(toParent))) {
+			expanded.add(String(toParent));
+		}
+		call('POST /api/projects/{name}/outline/{item_id}/move', {
+			params: { name: PROJECT, item_id: id },
+			body: { parent_id: toParent, position }
+		})
+			.then(() => load())
+			.catch(async (err) => {
+				error = msg(err, 'Could not move');
+				await load();
+			});
+	}
+
 	$effect(() => {
-		const root = viewMode === 'tree' ? treeEl : tableEl;
+		const mode = viewMode;
+		const root = mode === 'tree' ? treeEl : tableEl;
 		const o = outline;
 		const e = expanded;
+		const sorted = sortCol;
 		if (!root) return;
 		instances.forEach((s) => s.destroy());
 		instances.length = 0;
-		for (const el of root.querySelectorAll<HTMLElement>('.outline-children')) {
-			instances.push(Sortable.create(el, {
-				draggable: '[data-node]',
-				group: 'outline',
-				animation: 120,
-				delay: 350,
-				delayOnTouchOnly: true,
-				touchStartThreshold: 5,
-				scroll: true,
-				scrollSensitivity: 30,
-				scrollSpeed: 15,
-				ghostClass: 'dnd-ghost',
-				chosenClass: 'dnd-chosen',
-				dragClass: 'dnd-drag',
-				onChoose: () => (dragging = true),
-				onUnchoose: () => (dragging = false),
-				onMove(evt) {
-					const dragId = Number(evt.dragged.dataset.node);
-					const toParent = parentOf(evt.to);
-					if (!Number.isNaN(dragId) && toParent !== null && inSubtree(o, dragId, toParent)) return false;
-					const rel = evt.related ?? null;
-					if (rel?.dataset.node) {
-						const rid = Number(rel.dataset.node);
-						const f = findItem(o, rid);
-						if (f?.type === 'folder' && f.children.length > 0 && !e.has(String(rid))) e.add(String(rid));
-					}
-					return true;
-				},
-				onEnd(evt) {
-					const id = Number(evt.item.dataset.node);
-					if (!Number.isFinite(id)) return;
-					const toParent = parentOf(evt.to);
-					const fromParent = parentOf(evt.from);
-					const to = evt.newDraggableIndex;
-					const from = evt.oldDraggableIndex;
-					if (to === undefined || from === undefined || (evt.to === evt.from && from === to)) return;
-					const position = evt.to === evt.from || fromParent === toParent
-						? sameParentPosition(from, to)
-						: to;
-					let next: OutlineItem[];
-					try {
-						next = moveItem(outline, id, toParent, position);
-					} catch {
-						void load();
-						return;
-					}
-					outline = next;
-					if (toParent !== null && !e.has(String(toParent))) e.add(String(toParent));
-					call('POST /api/projects/{name}/outline/{item_id}/move', {
-						params: { name: PROJECT, item_id: id },
-						body: { parent_id: toParent, position }
-					}).catch(async (err) => {
-						error = msg(err, 'Could not move');
-						await load();
-					});
-				}
-			}));
+
+		if (mode === 'tree') {
+			const containers = [
+				root,
+				...root.querySelectorAll<HTMLElement>('.outline-children')
+			].filter((el): el is HTMLElement => el.classList.contains('outline-children'));
+
+			for (const el of containers) {
+				instances.push(
+					Sortable.create(el, {
+						draggable: '[data-node]',
+						group: 'outline',
+						animation: 120,
+						forceFallback: true,
+						fallbackTolerance: 4,
+						delay: 150,
+						delayOnTouchOnly: true,
+						touchStartThreshold: 5,
+						filter: 'input, textarea, select, button',
+						preventOnFilter: false,
+						scroll: true,
+						scrollSensitivity: 30,
+						scrollSpeed: 15,
+						ghostClass: 'dnd-ghost',
+						chosenClass: 'dnd-chosen',
+						dragClass: 'dnd-drag',
+						onChoose: () => (dragging = true),
+						onUnchoose: () => (dragging = false),
+						onMove(evt) {
+							const dragId = Number(evt.dragged.dataset.node);
+							const toParent = parentOf(evt.to);
+							if (!Number.isNaN(dragId) && toParent !== null && inSubtree(o, dragId, toParent)) {
+								return false;
+							}
+							const rel = evt.related ?? null;
+							if (rel?.dataset.node) {
+								const rid = Number(rel.dataset.node);
+								const f = findItem(o, rid);
+								if (f?.type === 'folder' && !e.has(String(rid))) e.add(String(rid));
+							}
+							return true;
+						},
+						onEnd(evt) {
+							dragging = false;
+							const id = Number(evt.item.dataset.node);
+							const toParent = parentOf(evt.to);
+							const fromParent = parentOf(evt.from);
+							const to = evt.newDraggableIndex;
+							const from = evt.oldDraggableIndex;
+							restoreDomNode(evt);
+							if (!Number.isFinite(id) || to === undefined || from === undefined) return;
+							if (evt.to === evt.from && from === to) return;
+							const position =
+								evt.to === evt.from || fromParent === toParent
+									? sameParentPosition(from, to)
+									: to;
+							persistMove(id, toParent, position);
+						}
+					})
+				);
+			}
+		} else if (!sorted) {
+			const rowsEl = root.querySelector<HTMLElement>('.outline-table-rows');
+			if (rowsEl) {
+				instances.push(
+					Sortable.create(rowsEl, {
+						draggable: '[data-node]',
+						animation: 120,
+						forceFallback: true,
+						fallbackTolerance: 4,
+						delay: 150,
+						delayOnTouchOnly: true,
+						touchStartThreshold: 5,
+						filter: 'input, textarea, select, button',
+						preventOnFilter: false,
+						scroll: true,
+						scrollSensitivity: 30,
+						scrollSpeed: 15,
+						ghostClass: 'dnd-ghost',
+						chosenClass: 'dnd-chosen',
+						dragClass: 'dnd-drag',
+						onChoose: () => (dragging = true),
+						onUnchoose: () => (dragging = false),
+						onEnd(evt) {
+							dragging = false;
+							const id = Number(evt.item.dataset.node);
+							const to = evt.newDraggableIndex;
+							const from = evt.oldDraggableIndex;
+							restoreDomNode(evt);
+							if (!Number.isFinite(id) || to === undefined || from === undefined || from === to) {
+								return;
+							}
+							const move = computeFlatTableMove(outline, id, to);
+							if (!move) return;
+							persistMove(id, move.toParent, move.position);
+						}
+					})
+				);
+			}
 		}
 	});
 	$effect(() => () => { instances.forEach((s) => s.destroy()); instances.length = 0; });
@@ -236,7 +310,7 @@
 
 	function expandAll(items: OutlineItem[]) {
 		for (const n of items) {
-			if (n.children.length) {
+			if (n.type === 'folder') {
 				expanded.add(String(n.id));
 				expandAll(n.children);
 			}
@@ -461,6 +535,9 @@
 			if (addingParentId !== null) {
 				expanded.add(String(addingParentId));
 			}
+			if (apiType === 'folder') {
+				expanded.add(String(created.id));
+			}
 			const createdNode = findItem(outline, created.id);
 			if (createdNode) select(createdNode);
 			addingType = null;
@@ -555,8 +632,8 @@
 				<p class="py-12 text-center" style="color: var(--muted)">This project has no scenes yet.</p>
 			{:else if viewMode === 'tree'}
 				<!-- Tree view -->
-				<div class="flex flex-col rounded-lg border" style="border-color: var(--border)"
-					role="tree" aria-label="Outline" bind:this={treeEl}>
+				<div class="outline-children flex flex-col rounded-lg border" style="border-color: var(--border)"
+					role="tree" aria-label="Outline" data-parent="" bind:this={treeEl}>
 					{#each outline as item (item.id)}
 						<OutlineNode
 							node={item} {expanded} {selectedId} {editingId} {editingTitle}
@@ -597,20 +674,24 @@
 					</div>
 
 					<!-- Rows -->
+					<div class="outline-table-rows">
 					{#each tableRows as { item, depth } (item.id)}
 						<div
-							class="outline-row flex items-center border-b transition-colors hover:bg-[color:var(--accent)]/5"
+							class="outline-row flex items-center border-b transition-colors hover:bg-[color:var(--accent)]/5 select-none cursor-pointer"
 							data-node={item.id}
 							data-depth={depth}
-							role="button" tabindex="0" onclick={() => select(item)} onkeydown={(e) => { if (e.key === 'Enter') select(item); }}
-							style="border-color: var(--border)"
+							aria-selected={selectedId === item.id}
+							role="row" tabindex="0" onclick={() => select(item)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(item); } }}
+							style="border-color: var(--border); background: {selectedId === item.id ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'transparent'}"
 						>
 							{#each COLUMNS as col}
 								{#if visibleCols.has(col.key)}
 									<div
 										class="outline-cell flex items-center gap-1 px-2 py-1.5 overflow-hidden shrink-0"
 										style="width: {col.width}; {col.key === 'name' ? `padding-left: ${8 + depth * 20}px` : ''}"
-										onclick={(e) => {
+										onclick={() => select(item)}
+										ondblclick={(e) => {
+											select(item);
 											if (col.key === 'name') {
 												e.stopPropagation();
 												startEdit(item);
@@ -619,9 +700,16 @@
 												startEditCell(item, 'summary_sentence');
 											}
 										}}
-										role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); } }}
+										role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); select(item); } }}
 									>
 										{#if col.key === 'name'}
+											<span
+												class="outline-drag-handle flex size-5 shrink-0 cursor-grab items-center justify-center opacity-60 hover:opacity-100 active:cursor-grabbing"
+												title="Drag to reorder"
+												aria-label="Drag {item.title}"
+											>
+												<GripVertical size={13} />
+											</span>
 											{#if item.type === 'folder'}
 												<Folder size={14} style="color:var(--muted)" />
 											{:else}
@@ -694,6 +782,7 @@
 							{/each}
 						</div>
 					{/each}
+					</div>
 				</div>
 			{/if}
 
@@ -912,13 +1001,27 @@
 {/if}
 
 <style>
+	/* ─── Drag-and-drop states ─────────────────────────────────────────────── */
+	:global(.dnd-ghost) {
+		opacity: 0.4;
+		background: color-mix(in srgb, var(--accent) 15%, var(--surface)) !important;
+	}
+	:global(.dnd-chosen) {
+		background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+	}
+	:global(.dnd-drag) {
+		opacity: 0.92;
+		background: var(--surface);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+		border-radius: 6px;
+	}
+
 	/* ─── Outline table ──────────────────────────────────────────────────────── */
 	.outline-header {
 		user-select: none;
 		-webkit-user-select: none;
 	}
-	.outline-row { cursor: default; }
-	.outline-row:hover { cursor: pointer; }
+	.outline-row { cursor: pointer; }
 
 	/* Stacked rows on phone (narrow screens) */
 	@media (max-width: 768px) {
@@ -928,26 +1031,13 @@
 			align-items: stretch;
 			gap: 0;
 			border-radius: 0;
-			border-bottom-width: 0;
 		}
 		.outline-cell {
 			flex-direction: row;
 			width: auto !important;
 			gap: 8px;
 			padding: 6px 12px;
-			border-bottom: 1px solid var(--border);
 		}
-		.outline-cell > span:first-child,
-		.outline-cell > input:first-child,
-		.outline-cell > textarea:first-child {
-			font-weight: 600;
-			min-width: 80px;
-			color: var(--muted);
-			flex-shrink: 0;
-		}
-		.outline-cell:nth-of-type(1) { padding-left: 12px; }
-		.outline-cell:nth-of-type(1) > span:first-child { display: none; }
-		.outline-row:last-child { border-bottom: none; }
 	}
 
 	/* ─── Add form overlay ─────────────────────────────────────────────────── */

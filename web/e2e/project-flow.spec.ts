@@ -104,6 +104,14 @@ test('create a project, open it in the editor, and use the outline', async ({ pa
 	await chNoteDialog.getByRole('button', { name: 'Add note' }).click();
 	await expect(page.getByText('Chapter arc').first()).toBeVisible();
 
+	// Switch to Table view and click a row's name to select it into the bottom editing section.
+	await page.getByTitle('Table view').click();
+	await page.locator('.outline-row', { hasText: 'Scene 2A' }).click();
+	await expect(page.locator('h3', { hasText: 'Scene 2A' })).toBeVisible();
+	await page.getByLabel('Summary sentence').fill('The investigation begins.');
+	await page.getByLabel('Summary sentence').blur();
+	await page.getByTitle('Tree view').click();
+
 	// ...and survive a reload.
 	await page.reload();
 	await page.getByRole('treeitem', { name: /Chapter 1/ }).click();
