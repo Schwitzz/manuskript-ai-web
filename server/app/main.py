@@ -36,7 +36,7 @@ async def lifespan(_app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Manuskript AI", version="0.1.0", lifespan=lifespan,
+    app = FastAPI(title="Moduskript", version="0.1.0", lifespan=lifespan,
                   docs_url="/api/docs", openapi_url="/api/openapi.json")
 
     @app.get("/api/health", response_model=HealthOut)
