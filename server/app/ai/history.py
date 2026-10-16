@@ -12,6 +12,18 @@ import sqlite3
 from pathlib import Path
 
 
+def _norm_project(project: str | None) -> str:
+    if not project:
+        return ""
+    s = str(project).strip().rstrip("/\\")
+    if not s:
+        return ""
+    p = Path(s)
+    if p.name.upper() == "MANUSKRIPT":
+        p = p.parent
+    return p.stem if p.suffix.lower() == ".msk" else p.name
+
+
 class ChatStore:
     def __init__(self, folder):
         self.folder = Path(folder)
@@ -59,10 +71,11 @@ class ChatStore:
         now = time.time()
         chat["updated"] = now
         chat.setdefault("created", now)
+        proj = _norm_project(chat.get("project", ""))
         self.db.execute("""
             INSERT OR REPLACE INTO chats (id, title, project, created, updated)
             VALUES (?, ?, ?, ?, ?)
-        """, (chat["id"], chat["title"], chat["project"],
+        """, (chat["id"], chat["title"], proj,
               chat["created"], chat["updated"]))
         # Delete old messages and insert fresh
         self.db.execute("DELETE FROM messages WHERE chat_id = ?", (chat["id"],))
@@ -108,20 +121,21 @@ class ChatStore:
 
     def list_chats(self, project=None):
         """Newest first. If project is given, only that project's chats."""
-        if project:
-            rows = self.db.execute(
-                "SELECT id, title, project, created, updated"
-                " FROM chats WHERE project = ? ORDER BY updated DESC",
-                (project,)).fetchall()
-        else:
-            rows = self.db.execute(
-                "SELECT id, title, project, created, updated"
-                " FROM chats ORDER BY updated DESC").fetchall()
-        return [
-            {"id": r[0], "title": r[1], "project": r[2],
-             "created": r[3], "updated": r[4]}
-            for r in rows
-        ]
+        norm = _norm_project(project) if project else None
+        rows = self.db.execute(
+            "SELECT id, title, project, created, updated"
+            " FROM chats ORDER BY updated DESC"
+        ).fetchall()
+        out = []
+        for r in rows:
+            r_proj = _norm_project(r[2])
+            if norm and r_proj != norm:
+                continue
+            out.append({
+                "id": r[0], "title": r[1], "project": r_proj,
+                "created": r[3], "updated": r[4]
+            })
+        return out
 
     def add_message(self, chat_id, role, content, agent=None):
         """Add a single message to a chat, updating the chat's updated time."""

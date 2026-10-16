@@ -266,6 +266,10 @@ export interface OutlineOut {
 	items: OutlineItemOut[];
 }
 
+export interface PasswordUpdateBody {
+	password: string;
+}
+
 export interface PlotIn {
 	name: string;
 	importance?: string;
@@ -545,6 +549,8 @@ export interface Routes {
 	"GET /api/auth/me": { body: never; response: MeOut };
 	"GET /api/auth/users": { body: never; response: UsersList };
 	"POST /api/auth/register": { body: RegisterBody; response: Ok };
+	"PUT /api/auth/users/{user_id}/password": { body: PasswordUpdateBody; response: Ok };
+	"DELETE /api/auth/users/{user_id}": { body: never; response: Ok };
 	"GET /api/ai/providers": { body: never; response: ProvidersBody };
 	"POST /api/ai/providers": { body: ProvidersBody; response: ProvidersBody };
 	"GET /api/ai/agents": { body: never; response: AgentPromptsResponse };

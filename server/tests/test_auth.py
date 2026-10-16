@@ -118,3 +118,33 @@ def test_cidr_allowlist(client, monkeypatch):
     get_settings.cache_clear()
     r = client.post("/api/auth/setup", json={"username": "ab", "password": PW})
     assert r.status_code == 403  # TestClient peer is not in 10.0.0.0/8
+
+
+def test_user_management_modify_password_and_delete(logged_in):
+    # Create a second user
+    r = logged_in.post(
+        "/api/auth/register",
+        json={"username": "seconduser", "password": "initial password 123"},
+        headers=csrf_headers(logged_in),
+    )
+    assert r.status_code == 200
+    users = logged_in.get("/api/auth/users").json()["users"]
+    second = next(u for u in users if u["username"] == "seconduser")
+
+    # Modify second user's password
+    r_pw = logged_in.put(
+        f"/api/auth/users/{second['id']}/password",
+        json={"password": "updated password 456"},
+        headers=csrf_headers(logged_in),
+    )
+    assert r_pw.status_code == 200
+
+    # Delete second user
+    r_del = logged_in.delete(f"/api/auth/users/{second['id']}", headers=csrf_headers(logged_in))
+    assert r_del.status_code == 200
+    remaining = logged_in.get("/api/auth/users").json()["users"]
+    assert len(remaining) == 1
+
+    # Cannot delete the last remaining user
+    r_last = logged_in.delete(f"/api/auth/users/{remaining[0]['id']}", headers=csrf_headers(logged_in))
+    assert r_last.status_code == 400
