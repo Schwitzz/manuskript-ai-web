@@ -83,13 +83,18 @@ def list_projects() -> list[dict]:
 
 
 def _guard_writes(project: Project, path: Path) -> None:
-    """While a sync pass holds the .lock marker, reads work but any save is refused (423).
-    Done on the Project itself so no endpoint can forget to check."""
+    """While a sync pass holds the .lock marker, reads work; brief desktop saves wait up to 1.5s."""
     real_save = project.save
 
     def guarded_save():
         if synclock.is_locked(path):
-            raise HTTPException(423, "A sync is running for this project. Try again in a moment.")
+            info = synclock.read(path)
+            if info and info.get("owner") == "desktop":
+                deadline = time.time() + 1.5
+                while time.time() < deadline and synclock.is_locked(path):
+                    time.sleep(0.05)
+            if synclock.is_locked(path):
+                raise HTTPException(423, "A sync is running for this project. Try again in a moment.")
         return real_save()
 
     project.save = guarded_save  # type: ignore[method-assign]

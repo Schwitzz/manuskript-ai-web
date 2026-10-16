@@ -30,7 +30,22 @@ def hash_password(password: str) -> str:
     return _hasher.hash(password)
 
 
+def hash_password_pbkdf2(password: str, iterations: int = 310000) -> str:
+    salt = secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt), iterations)
+    return f"$pbkdf2-sha256${iterations}${salt}${dk.hex()}"
+
+
 def verify_password(hashed: str, password: str) -> bool:
+    if hashed.startswith("$pbkdf2-sha256$"):
+        try:
+            _, _, iter_s, salt_hex, dk_hex = hashed.split("$", 4)
+            dk = hashlib.pbkdf2_hmac(
+                "sha256", password.encode("utf-8"), bytes.fromhex(salt_hex), int(iter_s)
+            )
+            return hmac.compare_digest(dk.hex(), dk_hex)
+        except Exception:
+            return False
     try:
         return _hasher.verify(hashed, password)
     except (VerificationError, InvalidHashError):

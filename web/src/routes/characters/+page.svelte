@@ -1,6 +1,7 @@
 <script lang="ts">
 import AppShell from '#lib/components/AppShell.svelte';
 import NoProject from '#lib/components/NoProject.svelte';
+import ProjectNav from '#lib/components/ProjectNav.svelte';
 import { project } from '#lib/stores/project.svelte.ts';
 import EmptyState from '#lib/components/EmptyState.svelte';
 import { Undo2, X, UserPlus } from '@lucide/svelte';
@@ -173,7 +174,8 @@ finally { loading = false; }
 </script>
 
 <AppShell title="Characters">
-<div class="mx-auto flex max-w-2xl flex-col gap-4">
+<div class="mx-auto flex max-w-4xl flex-col gap-4">
+	<ProjectNav active="characters" />
 	{#if !PROJECT}<NoProject />{:else if loading}
 		<p style="color: var(--muted)">Loading...</p>
 	{:else if error}

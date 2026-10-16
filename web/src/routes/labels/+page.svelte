@@ -1,6 +1,7 @@
 <script lang="ts">
 import AppShell from '#lib/components/AppShell.svelte';
 import NoProject from '#lib/components/NoProject.svelte';
+import ProjectNav from '#lib/components/ProjectNav.svelte';
 import { project } from '#lib/stores/project.svelte.ts';
 import { Palette, Plus, Trash2, X, Check } from '@lucide/svelte';
 import { call } from '#lib/api';
@@ -169,7 +170,8 @@ loadData();
 </script>
 
 <AppShell title="Labels & Statuses">
-<div class="mx-auto flex max-w-2xl flex-col gap-6">
+<div class="mx-auto flex max-w-4xl flex-col gap-6">
+<ProjectNav active="labels" />
 
 {#if !PROJECT_NAME}<NoProject />{:else if loading}
 <p class="py-8 text-center" style="color: var(--muted)">Loading...</p>

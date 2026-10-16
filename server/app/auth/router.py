@@ -36,6 +36,10 @@ class RegisterBody(BaseModel):
     password: str = Field(min_length=10, max_length=256)
 
 
+class PasswordUpdateBody(BaseModel):
+    password: str = Field(min_length=10, max_length=256)
+
+
 def _user_count() -> int:
     with db() as conn:
         return conn.execute("SELECT COUNT(*) AS n FROM user").fetchone()["n"]
@@ -236,4 +240,40 @@ def register(body: RegisterBody, request: Request, user: dict = Depends(current_
         )
     for k in keys:
         sec.clear_failures(k)
+    return {"ok": True}
+
+
+@router.put("/users/{user_id}/password", response_model=Ok)
+def update_user_password(
+    user_id: int,
+    body: PasswordUpdateBody,
+    request: Request,
+    user: dict = Depends(current_user),
+):
+    """Modify a user's password (requires authenticated session)."""
+    enforce_csrf(request)
+    with db() as conn:
+        target = conn.execute("SELECT id, username FROM user WHERE id = ?", (user_id,)).fetchone()
+        if not target:
+            raise HTTPException(404, "User not found")
+        conn.execute(
+            "UPDATE user SET password_hash = ? WHERE id = ?",
+            (sec.hash_password(body.password), user_id),
+        )
+    sec.clear_failures("user:" + target["username"].lower())
+    return {"ok": True}
+
+
+@router.delete("/users/{user_id}", response_model=Ok)
+def delete_user(user_id: int, request: Request, user: dict = Depends(current_user)):
+    """Remove a user account (cannot delete the last remaining user)."""
+    enforce_csrf(request)
+    with db() as conn:
+        target = conn.execute("SELECT id, username FROM user WHERE id = ?", (user_id,)).fetchone()
+        if not target:
+            raise HTTPException(404, "User not found")
+        count = conn.execute("SELECT COUNT(*) AS n FROM user").fetchone()["n"]
+        if count <= 1:
+            raise HTTPException(400, "Cannot remove the only remaining user account")
+        conn.execute("DELETE FROM user WHERE id = ?", (user_id,))
     return {"ok": True}

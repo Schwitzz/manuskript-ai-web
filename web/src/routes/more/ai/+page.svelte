@@ -1,10 +1,11 @@
 <script lang="ts">
 import AppShell from '#lib/components/AppShell.svelte';
-import { ai, type ProviderSetting } from '#lib/stores/ai.svelte.ts';
-import { Settings, Save, RotateCcw, Trash2, Plus, MessageSquare, Pencil, X } from '@lucide/svelte';
+import { ai, type ProviderSetting, SUGGESTED_MODELS } from '#lib/stores/ai.svelte.ts';
+import { Settings, Save, RotateCcw, Trash2, Plus, MessageSquare, Pencil, X, RefreshCw, Check } from '@lucide/svelte';
 import { onMount } from 'svelte';
 
 let saving = $state(false);
+let fetchingProvider = $state<string | null>(null);
 let savingAgent = $state<string | null>(null);
 let editingAgent = $state<string | null>(null);
 let editingPrompt = $state('');
@@ -20,8 +21,38 @@ await Promise.all([
 ai.loadProviderSettings(),
 ai.loadAgentPrompts(),
 ai.loadChatList(),
+ai.loadProviders()
 ]);
 });
+
+async function handleFetchModels(setting: ProviderSetting) {
+	fetchingProvider = setting.provider;
+	try {
+		await ai.saveProviderSettings(ai.providerSettings);
+		const models = await ai.fetchModelsForProvider(setting.provider);
+		if (models.length > 0 && !setting.model) {
+			setting.model = models[0];
+			await ai.saveProviderSettings(ai.providerSettings);
+		}
+		showToast(`Loaded ${models.length} models for ${setting.provider}`);
+	} catch (e) {
+		showToast(e instanceof Error ? e.message : `Could not fetch models for ${setting.provider}`);
+	} finally {
+		fetchingProvider = null;
+	}
+}
+
+function selectActiveProvider(setting: ProviderSetting) {
+	ai.provider = setting.provider;
+	if (setting.model) {
+		ai.model = setting.model;
+	} else {
+		const fallback = ai.modelsForProvider(setting.provider)[0] ?? '';
+		setting.model = fallback;
+		ai.model = fallback;
+	}
+	void handleSaveSettings();
+}
 
 function showToast(msg: string) {
 toastMsg = msg;
@@ -161,27 +192,84 @@ disabled={saving}
 </div>
 
 <div class="flex flex-col gap-4">
-{#each ai.providerSettings as setting}
-<div class="rounded-lg p-3" style="background: var(--surface-raised)">
-<div class="mb-2 flex items-center justify-between">
-<h3 class="font-medium">{setting.provider}</h3>
-<span class="text-xs" style="color: var(--muted)">
-{setting.model || 'No model set'}
-</span>
+{#each ai.providerSettings as setting, idx (setting.provider)}
+{@const modelChoices = Array.from(new Set([...(ai.providerModels[setting.provider] ?? []), ...(SUGGESTED_MODELS[setting.provider] ?? []), ...(setting.model ? [setting.model] : [])]))}
+<div class="rounded-lg border p-3" style="background: var(--surface-raised); border-color: {ai.provider === setting.provider ? 'var(--accent)' : 'var(--border)'}">
+<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+<div class="flex items-center gap-2">
+	<h3 class="font-medium">{setting.provider}</h3>
+	{#if setting.has_key}
+		<span class="rounded bg-green-500/15 px-2 py-0.5 text-[11px] font-medium text-green-400">API key saved</span>
+	{/if}
+</div>
+<div class="flex items-center gap-2">
+	<span class="rounded border px-2 py-0.5 text-xs font-medium" style="border-color: var(--border); color: {setting.model ? 'var(--accent)' : 'var(--muted)'}">
+		{setting.model || 'Select a model below'}
+	</span>
+	<button
+		type="button"
+		class="flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium"
+		style="background: {ai.provider === setting.provider ? 'var(--accent)' : 'var(--surface)'}; color: {ai.provider === setting.provider ? 'var(--accent-text)' : 'var(--text)'}; border: 1px solid var(--border)"
+		onclick={() => selectActiveProvider(setting)}
+	>
+		{#if ai.provider === setting.provider}<Check size={12} /> Active{:else}Set Active{/if}
+	</button>
+</div>
 </div>
 
 <div class="flex flex-col gap-3">
 <div>
-<label for="api_key" class="mb-1 block text-xs font-medium" style="color: var(--muted)">
+<label for={`model-select-${idx}`} class="mb-1 block text-xs font-medium" style="color: var(--muted)">
+Default Model
+</label>
+<div class="flex flex-wrap gap-2">
+	<select
+		id={`model-select-${idx}`}
+		aria-label={`Default model for ${setting.provider}`}
+		bind:value={setting.model}
+		onchange={() => { if (ai.provider === setting.provider) ai.model = setting.model; }}
+		class="min-w-[180px] flex-1 rounded border px-3 py-2 text-sm"
+		style="border-color: var(--border); background: var(--surface); color: var(--fg)"
+	>
+		<option value="">-- Choose a model --</option>
+		{#each modelChoices as m (m)}
+			<option value={m}>{m}</option>
+		{/each}
+	</select>
+	<input
+		type="text"
+		aria-label={`Custom model ID for ${setting.provider}`}
+		bind:value={setting.model}
+		oninput={() => { if (ai.provider === setting.provider) ai.model = setting.model; }}
+		class="min-w-[160px] flex-1 rounded border px-3 py-2 text-sm"
+		style="border-color: var(--border); background: var(--surface); color: var(--fg)"
+		placeholder="Or type custom model ID..."
+	/>
+	<button
+		type="button"
+		class="flex items-center gap-1.5 rounded border px-3 py-2 text-xs font-medium"
+		style="border-color: var(--border); background: var(--surface); color: var(--text)"
+		disabled={fetchingProvider === setting.provider}
+		onclick={() => handleFetchModels(setting)}
+		title="Save key/endpoint and fetch models from provider"
+	>
+		<RefreshCw size={13} class={fetchingProvider === setting.provider ? 'animate-spin' : ''} />
+		{fetchingProvider === setting.provider ? 'Fetching...' : 'Fetch Models'}
+	</button>
+</div>
+</div>
+
+<div>
+<label for={`api_key_${idx}`} class="mb-1 block text-xs font-medium" style="color: var(--muted)">
 API Key
 </label>
 <input
-id="api_key"
+id={`api_key_${idx}`}
 type="password"
 bind:value={setting.api_key}
-class="w-full rounded px-3 py-2 text-sm"
+class="w-full rounded border px-3 py-2 text-sm"
 style="border-color: var(--border); background: var(--surface); color: var(--fg)"
-placeholder="Enter your API key..."
+placeholder={setting.has_key ? '•••••••• (saved — enter new key to replace)' : 'Enter your API key...'}
 />
 </div>
 

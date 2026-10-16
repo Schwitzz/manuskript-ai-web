@@ -16,6 +16,8 @@ page.evaluate((n) => document.documentElement.style.getPropertyValue(n).trim(), 
 test('themes switch live, persist across reload, and stay readable', async ({ page }, info) => {
 await login(page);
 await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'More' }).click();
+await page.getByRole('button', { name: /Themes/ }).click();
+await expect(page).toHaveURL(/\/themes/);
 const panel = page.getByRole('region', { name: 'Appearance' });
 
 // Default is the dark Midnight scheme.
@@ -39,6 +41,7 @@ await expect(page.locator('html')).toHaveAttribute('data-theme', 'paper');
 
 // Another scheme, then density and accent.
 await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'More' }).click();
+await page.getByRole('button', { name: /Themes/ }).click();
 await panel.locator('[data-scheme="dracula"]').click();
 await expect(page.locator('html')).toHaveAttribute('data-theme', 'dracula');
 await panel.getByRole('radio', { name: 'Spacious' }).click();
@@ -79,6 +82,7 @@ await expect(page.locator('html')).toHaveAttribute('data-theme', 'midnight');
 test('System follows the device colour scheme live', async ({ page }) => {
 await login(page);
 await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'More' }).click();
+await page.getByRole('button', { name: /Themes/ }).click();
 await page.getByRole('region', { name: 'Appearance' }).locator('[data-scheme="system"]').click();
 
 await page.emulateMedia({ colorScheme: 'light' });

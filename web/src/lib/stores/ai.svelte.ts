@@ -5,6 +5,13 @@ import type { ChatListEntry } from '#lib/api-types.ts';
 const PROVIDERS = ['Local / Llama.cpp', 'OpenAI', 'Anthropic', 'Google Gemini'];
 const THINKING_LEVELS = ['Off', 'low', 'med', 'high', 'xhigh'];
 
+export const SUGGESTED_MODELS: Record<string, string[]> = {
+	'Local / Llama.cpp': ['local-model', 'llama-3.3-70b-instruct', 'qwen2.5-coder-32b', 'mistral-nemo'],
+	'OpenAI': ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'o3-mini'],
+	'Anthropic': ['claude-sonnet-4-20250514', 'claude-3-7-sonnet-latest', 'claude-3-5-haiku-latest'],
+	'Google Gemini': ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash']
+};
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -98,10 +105,39 @@ class AICore {
 		if (this._initialized) return;
 		this._initialized = true;
 		await this.loadAgents();
+		await this.loadProviderSettings();
 		await this.loadProviders();
-		if (this.providerModels[this.provider]) {
+		const activeSetting = this.providerSettings.find((s) => s.provider === this.provider);
+		if (activeSetting?.model) {
+			this.model = activeSetting.model;
+		} else if (this.providerModels[this.provider]?.length) {
 			this.model = this.providerModels[this.provider][0] ?? '';
+		} else {
+			this.model = SUGGESTED_MODELS[this.provider]?.[0] ?? '';
 		}
+	}
+
+	modelsForProvider(prov: string): string[] {
+		const fetched = this.providerModels[prov] ?? [];
+		const saved = this.providerSettings.find((s) => s.provider === prov)?.model ?? '';
+		const suggested = SUGGESTED_MODELS[prov] ?? [];
+		const current = prov === this.provider ? this.model : '';
+		const all = [
+			...(saved ? [saved] : []),
+			...(current ? [current] : []),
+			...fetched,
+			...suggested
+		];
+		return Array.from(new Set(all.filter(Boolean)));
+	}
+
+	async fetchModelsForProvider(prov: string): Promise<string[]> {
+		const data = await api<{ models: string[] }>(
+			'GET', `/api/ai/models?provider=${encodeURIComponent(prov)}`
+		);
+		const models = data.models ?? [];
+		this.providerModels = { ...this.providerModels, [prov]: models };
+		return models;
 	}
 
 	private async loadAgents() {
@@ -294,12 +330,26 @@ class AICore {
 		try {
 			const data = await api<{ settings: ProviderSetting[] }>('GET', '/api/ai/providers');
 			this.providerSettings = data.settings ?? [];
+			const active = this.providerSettings.find((s) => s.provider === this.provider);
+			if (active?.model) {
+				this.model = active.model;
+			} else {
+				const withModel = this.providerSettings.find((s) => s.model);
+				if (withModel && !this.model) {
+					this.provider = withModel.provider;
+					this.model = withModel.model;
+				}
+			}
 		} catch { /* non-critical */ }
 	}
 
 	async saveProviderSettings(settings: ProviderSetting[]) {
-		await api<{ ok: boolean }>('POST', '/api/ai/providers', { settings });
-		this.providerSettings = settings;
+		const res = await api<{ settings: ProviderSetting[] }>('POST', '/api/ai/providers', { settings });
+		this.providerSettings = res.settings ?? settings;
+		const active = this.providerSettings.find((s) => s.provider === this.provider);
+		if (active?.model) {
+			this.model = active.model;
+		}
 	}
 
 	async loadAgentPrompts() {

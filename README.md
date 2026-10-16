@@ -74,6 +74,16 @@ docker compose up -d
 5. **Desktop Editor & Whiteboard UX**: Single-row icon-led `FormatBar` with Typography popover, icon-led Whiteboard toolbar, and direct **click-and-drag line connections from node handles**.
 6. **Desktop AI Chat Header**: Removed the native `QDockWidget` title bar (`×` / tiny float button) and replaced all controls with modern icons.
 
+## Version `0.01.1` — UI Bug Fixes & Improvements
+- **Readable Mode & True Formatting Toggles**: Icon-only Readable Mode toggle that hides Markdown syntax across all lines (including the active cursor line) and unwraps existing `**`, `*`, `~~`, `# `, `> `, `- `, `1. ` markers when toggled off.
+- **Categorized Write Toolbar, Static Viewport & Docked Resizable AI Chat**:
+  - Labeled toolbar categories (**Formatting**, **Assistant**, **Info**), fixed viewport layout where only the typing area scrolls, comfortable centered reading width, togglable left **Project Outline** sidebar, top **Chapters / Scenes / Notes dropdown**, and side-by-side **resizable AI Chat panel**.
+- **Shared AI Sync & Default Model Selector**: Unified AI provider settings and chat histories (`chats.db`) across Web and Desktop, with a Default Model selector + custom model ID input + Fetch Models button per provider in `/more/ai`.
+- **Organized `/more` Hub, `/themes` Window, `ProjectNav` & Full User Management**:
+  - Organized `/more` into **Project**, **Appearance** (opens `/themes` with 32 colour schemes + Spellcheck/Inspector/Word Count toggles), **Assistant**, and **Users**.
+  - Added unified `ProjectNav` across Title Properties, Summary, Plot & Subplots, Characters, World Builder, and Labels & Statuses.
+  - Full **Users** management (add user, modify password, remove user) in both Web (`/register`) and Desktop (`Settings → Web Server & Sync`).
+
 ---
 
 ## License
