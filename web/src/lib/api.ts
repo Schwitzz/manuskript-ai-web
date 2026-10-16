@@ -7,7 +7,8 @@ export class ApiError extends Error {
 	constructor(
 		public status: number,
 		message: string,
-		public retryAfter?: number
+		public retryAfter?: number,
+		public detail?: unknown
 	) {
 		super(message);
 	}
@@ -29,11 +30,20 @@ export async function api<T = unknown>(method: string, path: string, body?: unkn
 		body: body === undefined ? undefined : JSON.stringify(body)
 	});
 	if (!res.ok) {
-		let msg = res.statusText;
+		let msg = res.statusText || `HTTP ${res.status}`;
+		let detailObj: unknown = undefined;
 		try {
 			const j = await res.json();
+			detailObj = j.detail;
 			if (typeof j.detail === 'string') {
 				msg = j.detail;
+			} else if (
+				typeof j.detail === 'object' &&
+				j.detail !== null &&
+				!Array.isArray(j.detail) &&
+				typeof (j.detail as { message?: unknown }).message === 'string'
+			) {
+				msg = (j.detail as { message: string }).message;
 			} else if (Array.isArray(j.detail) && j.detail.length > 0) {
 				msg = j.detail
 					.map((d: { msg?: string; loc?: (string | number)[] }) => {
@@ -46,7 +56,7 @@ export async function api<T = unknown>(method: string, path: string, body?: unkn
 			/* keep statusText */
 		}
 		const ra = res.headers.get('retry-after');
-		throw new ApiError(res.status, msg, ra ? Number(ra) : undefined);
+		throw new ApiError(res.status, msg, ra ? Number(ra) : undefined, detailObj);
 	}
 	return (await res.json()) as T;
 }

@@ -28,7 +28,9 @@ class ChatStore:
     def __init__(self, folder):
         self.folder = Path(folder)
         self.folder.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(str(self.folder / "chats.db"))
+        self.db = sqlite3.connect(str(self.folder / "chats.db"), timeout=15.0)
+        self.db.execute("PRAGMA journal_mode=WAL;")
+        self.db.execute("PRAGMA busy_timeout=15000;")
         self._init_db()
 
     def _init_db(self):

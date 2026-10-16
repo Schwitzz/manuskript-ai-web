@@ -1,6 +1,7 @@
 <script lang="ts">
 	import AppShell from '#lib/components/AppShell.svelte';
 	import InspectorPanel from '#lib/components/InspectorPanel.svelte';
+	import NoProject from '#lib/components/NoProject.svelte';
 	import AIStatusBar from '#lib/components/ai/AIStatusBar.svelte';
 	import { ai } from '#lib/stores/ai.svelte.ts';
 	import { appearance } from '#lib/stores/appearance.svelte.ts';
@@ -67,7 +68,7 @@
 		BookOpen,
 		CornerDownLeft,
 		MessageSquareQuote,
-		SlidersHorizontal,
+		Info,
 		PanelLeft,
 		Folder,
 		FileText,
@@ -102,6 +103,7 @@
 	let saved = $state(true);
 	let loading = $state(true);
 	let error = $state('');
+	let saveError = $state('');
 	let wordCount = $state(0);
 	let sessionGoal = $state(500);
 	let sessionStartWordCount = $state(0);
@@ -340,6 +342,7 @@
 		}
 		if (!currentProject || !docId) return;
 		saving = true;
+		saveError = '';
 		try {
 			if (activeNoteId && sceneInfo) {
 				const updatedNotes: AssociatedNote[] = (sceneInfo.associated_notes ?? []).map((n) =>
@@ -363,13 +366,44 @@
 			}
 		} catch (e: any) {
 			saved = false;
-			if (e.message?.includes('409')) {
+			if (e?.status === 409 || String(e?.message || '').includes('409')) {
+				// Version changed on disk (e.g., Desktop autosaved): adopt new base_version and retry save
+				const detailVer = e?.detail?.version;
+				if (typeof detailVer === 'string' && detailVer) {
+					version = detailVer;
+					try {
+						const retryRes = await call('PUT /api/projects/{name}/documents/{item_id}', {
+							params: { name: currentProject, item_id: docId },
+							body: { text: content, base_version: version }
+						});
+						version = (retryRes as any).version;
+						lastSaved = new Date();
+						saved = true;
+						saveError = '';
+						return;
+					} catch {}
+				}
 				try {
-					await loadDocument(docId, activeNoteId);
+					const fresh = await call('GET /api/projects/{name}/documents/{item_id}', {
+						params: { name: currentProject, item_id: docId }
+					});
+					version = fresh.version;
+					const retryRes = await call('PUT /api/projects/{name}/documents/{item_id}', {
+						params: { name: currentProject, item_id: docId },
+						body: { text: content, base_version: version }
+					});
+					version = (retryRes as any).version;
+					lastSaved = new Date();
+					saved = true;
+					saveError = '';
+					return;
 				} catch {}
-			} else {
-				error = e.message || 'Save failed';
+			} else if (e?.status === 423) {
+				// Project lock held briefly by Desktop: retry automatically in 1s
+				saveTimer = setTimeout(() => forceSave(), 1000);
+				return;
 			}
+			saveError = e?.message || 'Save failed';
 		} finally {
 			saving = false;
 		}
@@ -580,9 +614,13 @@
 		}
 	}
 
-	async function loadDocument(targetDocId?: number, targetNoteId: string | null = null) {
+	async function loadDocument(
+		targetDocId?: number,
+		targetNoteId: string | null = null,
+		retried = false
+	) {
 		if (!currentProject) {
-			error = 'No project selected';
+			error = '';
 			loading = false;
 			return;
 		}
@@ -593,6 +631,7 @@
 			}
 			loading = true;
 			error = '';
+			saveError = '';
 			const id = await resolveScene(targetDocId);
 			if (id === null) {
 				noScenes = true;
@@ -628,6 +667,29 @@
 			sessionStartWordCount = wordCount;
 			loading = false;
 		} catch (e: any) {
+			const isNotFound =
+				e?.status === 404 ||
+				String(e?.message || '')
+					.toLowerCase()
+					.includes('not found');
+			if (isNotFound && !retried) {
+				// Stored project name does not exist on this server: check available server projects
+				const list = await project.fetchProjects();
+				if (list.length > 0 && project.name) {
+					await loadDocument(undefined, null, true);
+					return;
+				}
+				project.select('');
+				error = '';
+				loading = false;
+				return;
+			}
+			if (isNotFound) {
+				project.select('');
+				error = '';
+				loading = false;
+				return;
+			}
 			error = e.message || 'Failed to load document';
 			loading = false;
 		}
@@ -695,14 +757,7 @@
 {#if !currentProject || loading || noScenes || error}
 	<AppShell title="Write">
 		{#if !currentProject}
-			<div class="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-				<p style="color: var(--muted); font-size: 0.875rem;">No project selected</p>
-				<button
-					class="rounded-lg border px-4 py-2 text-sm"
-					style="border-color: var(--border)"
-					onclick={() => goto('/more')}>Go to More → Create a project</button
-				>
-			</div>
+			<NoProject onProjectReady={() => loadDocument()} />
 		{:else if loading}
 			<div class="flex min-h-[60vh] items-center justify-center">
 				<p style="color: var(--muted)">Loading document...</p>
@@ -717,25 +772,7 @@
 				>
 			</div>
 		{:else if error}
-			<div class="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-				<p role="alert" style="color: var(--danger)">{error}</p>
-				{#if error.toLowerCase().includes('404')}
-					<p style="color: var(--muted); font-size: 0.875rem;">
-						Project may not exist. Create a new project or select another.
-					</p>
-					<button
-						class="rounded-lg border px-4 py-2 text-sm"
-						style="border-color: var(--border)"
-						onclick={() => goto('/more')}>Create project</button
-					>
-				{:else}
-					<button
-						class="rounded-lg border px-4 py-2 text-sm"
-						style="border-color: var(--border)"
-						onclick={() => loadDocument()}>Retry</button
-					>
-				{/if}
-			</div>
+			<NoProject notice={error} onProjectReady={() => loadDocument()} />
 		{/if}
 	</AppShell>
 {:else}
@@ -756,7 +793,7 @@
 					>
 				{:else}
 					<span class="h-2 w-2 rounded-full" style="background: var(--danger)"></span>
-					<span style="color: var(--danger)">Unsaved changes</span>
+					<span style="color: var(--danger)">{saveError || 'Unsaved changes'}</span>
 				{/if}
 				<div class="h-3 w-px" style="background: var(--border)"></div>
 				<span style="color: var(--muted)">{wordCount.toLocaleString()} words</span>
@@ -799,230 +836,248 @@
 				{/if}
 			</div>
 
-			<!-- Categorized Main Toolbar (#8–#16) -->
+			<!-- Categorized Main Toolbar with labels UNDER icon groups (#2, #3) -->
 			{#if showToolbar}
 				<div
-					class="flex shrink-0 flex-wrap items-center gap-3 border-b px-3 py-1.5"
+					class="flex shrink-0 flex-wrap items-stretch gap-3 border-b px-3 py-1"
 					style="border-color: var(--border); background: var(--surface)"
 					role="toolbar"
 					aria-label="Editor toolbar"
 				>
 					<!-- Category 1: Formatting -->
-					<div class="flex flex-wrap items-center gap-0.5" role="group" aria-label="Formatting">
+					<div
+						class="flex flex-col items-center justify-between gap-0.5"
+						role="group"
+						aria-label="Formatting"
+					>
+						<div class="flex flex-wrap items-center gap-0.5">
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Undo"
+								onclick={() => {
+									if (view) undo({ state: view.state, dispatch: view.dispatch.bind(view) });
+								}}><Undo2 size={17} style="color: var(--muted)" /></button
+							>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Redo"
+								onclick={() => {
+									if (view) redo({ state: view.state, dispatch: view.dispatch.bind(view) });
+								}}><Redo2 size={17} style="color: var(--muted)" /></button
+							>
+							<div class="mx-1 h-4 w-px" style="background: var(--border)"></div>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Heading 1 (toggle)"
+								onclick={() => insertBlock('h1')}><Heading1 size={17} style="color: var(--muted)" /></button
+							>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Heading 2 (toggle)"
+								onclick={() => insertBlock('h2')}><Heading2 size={17} style="color: var(--muted)" /></button
+							>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Heading 3 (toggle)"
+								onclick={() => insertBlock('h3')}><Heading3 size={17} style="color: var(--muted)" /></button
+							>
+							<div class="mx-1 h-4 w-px" style="background: var(--border)"></div>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Bold (toggle **)"
+								onclick={() => insertMarkdown('**', '**')}><Bold size={17} style="color: var(--muted)" /></button
+							>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Italic (toggle *)"
+								onclick={() => insertMarkdown('*', '*')}><Italic size={17} style="color: var(--muted)" /></button
+							>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Strikethrough (toggle ~~)"
+								onclick={() => insertMarkdown('~~', '~~')}
+								><Strikethrough size={17} style="color: var(--muted)" /></button
+							>
+							<div class="mx-1 h-4 w-px" style="background: var(--border)"></div>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Blockquote (toggle)"
+								onclick={() => insertBlock('quote')}><Quote size={17} style="color: var(--muted)" /></button
+							>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Bullet list (toggle)"
+								onclick={() => insertBlock('list')}><List size={17} style="color: var(--muted)" /></button
+							>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Numbered list (toggle)"
+								onclick={() => insertBlock('ordered')}
+								><ListOrdered size={17} style="color: var(--muted)" /></button
+							>
+							<div class="mx-1 h-4 w-px" style="background: var(--border)"></div>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Align Left"
+								onclick={() => alignText('left')}><AlignLeft size={17} style="color: var(--muted)" /></button
+							>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Align Center"
+								onclick={() => alignText('center')}
+								><AlignCenter size={17} style="color: var(--muted)" /></button
+							>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Align Right"
+								onclick={() => alignText('right')}
+								><AlignRight size={17} style="color: var(--muted)" /></button
+							>
+							<div class="mx-1 h-4 w-px" style="background: var(--border)"></div>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Search in document"
+								onclick={() => {
+									searchOpen = !searchOpen;
+								}}><Search size={17} style="color: var(--muted)" /></button
+							>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								title="Insert link"
+								onclick={() => insertLink()}><LinkIcon size={17} style="color: var(--muted)" /></button
+							>
+							<!-- Icon-only Markdown / Readable toggle (#3) -->
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								onclick={toggleReadableMode}
+								title={readableMode
+									? 'Readable mode active (Markdown syntax hidden — click to show Markdown code)'
+									: 'Markdown code visible (click to switch to Readable mode)'}
+								aria-label="Toggle Markdown code or readable mode"
+								aria-pressed={readableMode}
+								style="background: {readableMode ? 'var(--accent)' : 'transparent'}; color: {readableMode
+									? 'var(--accent-text)'
+									: 'var(--muted)'}"
+							>
+								{#if readableMode}
+									<BookOpen size={17} />
+								{:else}
+									<Code size={17} />
+								{/if}
+							</button>
+							<button
+								class="tap rounded p-1.5 disabled:opacity-50"
+								type="button"
+								title="Save document (Ctrl+S)"
+								disabled={saving}
+								onclick={forceSave}
+							>
+								{#if saving}
+									<span
+										class="h-4 w-4 animate-spin rounded-full"
+										style="border: 2px solid var(--muted); border-top-color: transparent"
+									></span>
+								{:else}
+									<Save size={17} style="color: var(--muted)" />
+								{/if}
+							</button>
+						</div>
 						<span
-							class="mr-1.5 text-[10px] font-semibold tracking-wider uppercase select-none"
+							class="text-[9px] leading-none font-semibold tracking-wider uppercase select-none"
 							style="color: var(--muted)">Formatting</span
 						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Undo"
-							onclick={() => {
-								if (view) undo({ state: view.state, dispatch: view.dispatch.bind(view) });
-							}}><Undo2 size={17} style="color: var(--muted)" /></button
-						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Redo"
-							onclick={() => {
-								if (view) redo({ state: view.state, dispatch: view.dispatch.bind(view) });
-							}}><Redo2 size={17} style="color: var(--muted)" /></button
-						>
-						<div class="mx-1 h-4 w-px" style="background: var(--border)"></div>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Heading 1 (toggle)"
-							onclick={() => insertBlock('h1')}><Heading1 size={17} style="color: var(--muted)" /></button
-						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Heading 2 (toggle)"
-							onclick={() => insertBlock('h2')}><Heading2 size={17} style="color: var(--muted)" /></button
-						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Heading 3 (toggle)"
-							onclick={() => insertBlock('h3')}><Heading3 size={17} style="color: var(--muted)" /></button
-						>
-						<div class="mx-1 h-4 w-px" style="background: var(--border)"></div>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Bold (toggle **)"
-							onclick={() => insertMarkdown('**', '**')}><Bold size={17} style="color: var(--muted)" /></button
-						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Italic (toggle *)"
-							onclick={() => insertMarkdown('*', '*')}><Italic size={17} style="color: var(--muted)" /></button
-						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Strikethrough (toggle ~~)"
-							onclick={() => insertMarkdown('~~', '~~')}
-							><Strikethrough size={17} style="color: var(--muted)" /></button
-						>
-						<div class="mx-1 h-4 w-px" style="background: var(--border)"></div>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Blockquote (toggle)"
-							onclick={() => insertBlock('quote')}><Quote size={17} style="color: var(--muted)" /></button
-						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Bullet list (toggle)"
-							onclick={() => insertBlock('list')}><List size={17} style="color: var(--muted)" /></button
-						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Numbered list (toggle)"
-							onclick={() => insertBlock('ordered')}
-							><ListOrdered size={17} style="color: var(--muted)" /></button
-						>
-						<div class="mx-1 h-4 w-px" style="background: var(--border)"></div>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Align Left"
-							onclick={() => alignText('left')}><AlignLeft size={17} style="color: var(--muted)" /></button
-						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Align Center"
-							onclick={() => alignText('center')}
-							><AlignCenter size={17} style="color: var(--muted)" /></button
-						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Align Right"
-							onclick={() => alignText('right')}
-							><AlignRight size={17} style="color: var(--muted)" /></button
-						>
-						<div class="mx-1 h-4 w-px" style="background: var(--border)"></div>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Search in document"
-							onclick={() => {
-								searchOpen = !searchOpen;
-							}}><Search size={17} style="color: var(--muted)" /></button
-						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							title="Insert link"
-							onclick={() => insertLink()}><LinkIcon size={17} style="color: var(--muted)" /></button
-						>
-						<!-- Icon-only Markdown / Readable toggle (#3) -->
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							onclick={toggleReadableMode}
-							title={readableMode
-								? 'Readable mode active (Markdown syntax hidden — click to show Markdown code)'
-								: 'Markdown code visible (click to switch to Readable mode)'}
-							aria-label="Toggle Markdown code or readable mode"
-							aria-pressed={readableMode}
-							style="background: {readableMode ? 'var(--accent)' : 'transparent'}; color: {readableMode
-								? 'var(--accent-text)'
-								: 'var(--muted)'}"
-						>
-							{#if readableMode}
-								<BookOpen size={17} />
-							{:else}
-								<Code size={17} />
-							{/if}
-						</button>
-						<button
-							class="tap rounded p-1.5 disabled:opacity-50"
-							type="button"
-							title="Save document (Ctrl+S)"
-							disabled={saving}
-							onclick={forceSave}
-						>
-							{#if saving}
-								<span
-									class="h-4 w-4 animate-spin rounded-full"
-									style="border: 2px solid var(--muted); border-top-color: transparent"
-								></span>
-							{:else}
-								<Save size={17} style="color: var(--muted)" />
-							{/if}
-						</button>
 					</div>
 
 					<!-- Separator between Formatting and Assistant -->
-					<div class="h-6 w-px" style="background: var(--border)"></div>
+					<div class="self-stretch w-px" style="background: var(--border)"></div>
 
-					<!-- Category 2: Assistant (#8) -->
-					<div class="flex items-center gap-0.5" role="group" aria-label="Assistant">
+					<!-- Category 2: Assistant (#2, #8) -->
+					<div
+						class="flex flex-col items-center justify-between gap-0.5"
+						role="group"
+						aria-label="Assistant"
+					>
+						<div class="flex items-center gap-0.5">
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								onclick={() => insertAIReply()}
+								title="Insert AI reply at cursor"
+								aria-label="Insert AI reply at cursor"
+							>
+								<CornerDownLeft size={17} style="color: var(--muted)" />
+							</button>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								onclick={() => askAboutSelection()}
+								title="Ask AI about selection"
+								aria-label="Ask AI about selection"
+							>
+								<MessageSquareQuote size={17} style="color: var(--muted)" />
+							</button>
+						</div>
 						<span
-							class="mr-1.5 text-[10px] font-semibold tracking-wider uppercase select-none"
+							class="text-[9px] leading-none font-semibold tracking-wider uppercase select-none"
 							style="color: var(--muted)">Assistant</span
 						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							onclick={() => insertAIReply()}
-							title="Insert AI reply at cursor"
-							aria-label="Insert AI reply at cursor"
-						>
-							<CornerDownLeft size={17} style="color: var(--muted)" />
-						</button>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							onclick={() => askAboutSelection()}
-							title="Ask AI about selection"
-							aria-label="Ask AI about selection"
-						>
-							<MessageSquareQuote size={17} style="color: var(--muted)" />
-						</button>
 					</div>
 
 					<!-- Separator between Assistant and Info -->
-					<div class="h-6 w-px" style="background: var(--border)"></div>
+					<div class="self-stretch w-px" style="background: var(--border)"></div>
 
-					<!-- Category 3: Info (#12, #14) -->
-					<div class="flex items-center gap-0.5" role="group" aria-label="Info">
+					<!-- Category 3: Info (#2, #3, #12, #14) -->
+					<div
+						class="flex flex-col items-center justify-between gap-0.5"
+						role="group"
+						aria-label="Info"
+					>
+						<div class="flex items-center gap-0.5">
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								onclick={toggleTypewriter}
+								title="Focus mode (center active line & hide toolbar)"
+								aria-label="Focus mode"
+								aria-pressed={showTypewriter}
+							>
+								<Eye size={17} style="color: {showTypewriter ? 'var(--accent)' : 'var(--muted)'}" />
+							</button>
+							<button
+								class="tap rounded p-1.5"
+								type="button"
+								onclick={() => appearance.setEditorPrefs({ showInspector: !inspectorOpen })}
+								title="Toggle Inspector"
+								aria-label="Inspector"
+								aria-pressed={inspectorOpen}
+							>
+								<Info
+									size={17}
+									style="color: {inspectorOpen ? 'var(--accent)' : 'var(--muted)'}"
+								/>
+							</button>
+						</div>
 						<span
-							class="mr-1.5 text-[10px] font-semibold tracking-wider uppercase select-none"
+							class="text-[9px] leading-none font-semibold tracking-wider uppercase select-none"
 							style="color: var(--muted)">Info</span
 						>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							onclick={toggleTypewriter}
-							title="Focus mode (center active line & hide toolbar)"
-							aria-label="Focus mode"
-							aria-pressed={showTypewriter}
-						>
-							<Eye size={17} style="color: {showTypewriter ? 'var(--accent)' : 'var(--muted)'}" />
-						</button>
-						<button
-							class="tap rounded p-1.5"
-							type="button"
-							onclick={() => appearance.setEditorPrefs({ showInspector: !inspectorOpen })}
-							title="Toggle Inspector"
-							aria-label="Inspector"
-							aria-pressed={inspectorOpen}
-						>
-							<SlidersHorizontal
-								size={17}
-								style="color: {inspectorOpen ? 'var(--accent)' : 'var(--muted)'}"
-							/>
-						</button>
 					</div>
 				</div>
 			{/if}
