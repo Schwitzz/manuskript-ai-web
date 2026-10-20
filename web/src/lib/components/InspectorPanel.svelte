@@ -12,7 +12,7 @@
 
 	type Field = 'label' | 'status' | 'summary_sentence' | 'goal' | 'pov' | 'notes';
 
-	let open = $state(false);
+	let open = $state(true);
 	let error = $state('');
 	let characters = $state<{ id: number; name: string }[]>([]);
 	let draftSummary = $state('');

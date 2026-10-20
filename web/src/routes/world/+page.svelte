@@ -1,6 +1,7 @@
 <script lang="ts">
 	import AppShell from '#lib/components/AppShell.svelte';
 	import NoProject from '#lib/components/NoProject.svelte';
+	import ProjectNav from '#lib/components/ProjectNav.svelte';
 	import { project } from '#lib/stores/project.svelte.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import {
@@ -276,6 +277,7 @@
 
 <AppShell title="World Builder">
 	<div class="mx-auto flex max-w-5xl flex-col gap-4">
+		<ProjectNav active="world" />
 		{#if !PROJECT}
 			<NoProject />
 		{:else if loading}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { appearance } from '#lib/stores/appearance.svelte.ts';
 	import { SCHEMES, SYSTEM } from '#lib/themes/schemes.ts';
-	import { Palette, Check } from '@lucide/svelte';
+	import { Palette, Check, SlidersHorizontal } from '@lucide/svelte';
 
 	const densities = [
 		{ id: 'compact', label: 'Compact' },
@@ -19,15 +19,49 @@
 </script>
 
 <section
-	class="flex flex-col gap-4 rounded-lg border p-4"
+	class="flex flex-col gap-5 rounded-lg border p-4"
 	style="background: var(--surface); border-color: var(--border)"
 	aria-label="Appearance"
 >
-	<h2 class="flex items-center gap-2 font-semibold"><Palette size={20} /> Appearance</h2>
+	<h2 class="flex items-center gap-2 font-semibold"><Palette size={20} style="color: var(--accent)" /> Themes</h2>
+
+	<!-- Editor & Writing Space Display Toggles (#15) -->
+	<div
+		class="flex flex-col gap-3 rounded-lg border p-3"
+		style="background: var(--bg); border-color: var(--border)"
+	>
+		<span class="flex items-center gap-1.5 text-xs font-semibold uppercase" style="color: var(--muted)">
+			<SlidersHorizontal size={14} /> Writing Space Options
+		</span>
+		<label class="flex cursor-pointer items-center justify-between text-sm">
+			<span>Spell check</span>
+			<input
+				type="checkbox"
+				checked={appearance.editorPrefs.spellCheck}
+				onchange={(e) => appearance.setEditorPrefs({ spellCheck: e.currentTarget.checked })}
+			/>
+		</label>
+		<label class="flex cursor-pointer items-center justify-between text-sm">
+			<span>Show Inspector panel</span>
+			<input
+				type="checkbox"
+				checked={appearance.editorPrefs.showInspector}
+				onchange={(e) => appearance.setEditorPrefs({ showInspector: e.currentTarget.checked })}
+			/>
+		</label>
+		<label class="flex cursor-pointer items-center justify-between text-sm">
+			<span>Show word count footer</span>
+			<input
+				type="checkbox"
+				checked={appearance.editorPrefs.showWordCount}
+				onchange={(e) => appearance.setEditorPrefs({ showWordCount: e.currentTarget.checked })}
+			/>
+		</label>
+	</div>
 
 	<div class="flex flex-col gap-2">
-		<span class="text-sm" id="theme-label">Theme</span>
-		<div class="grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="theme-label">
+		<span class="text-sm font-medium" id="theme-label">Colour Scheme (32 Themes)</span>
+		<div class="grid grid-cols-2 gap-2 sm:grid-cols-3" role="radiogroup" aria-labelledby="theme-label">
 			{#each choices as c (c.id)}
 				{@const selected = appearance.value.scheme === c.id}
 				<button
@@ -62,7 +96,7 @@
 	</div>
 
 	<div class="flex flex-col gap-2">
-		<span class="text-sm" id="density-label">Density</span>
+		<span class="text-sm font-medium" id="density-label">Density</span>
 		<div class="grid grid-cols-3 gap-1" role="radiogroup" aria-labelledby="density-label">
 			{#each densities as d (d.id)}
 				{@const on = appearance.value.density === d.id}
@@ -70,7 +104,7 @@
 					type="button"
 					role="radio"
 					aria-checked={on}
-					class="rounded-lg border text-sm"
+					class="rounded-lg border py-1.5 text-sm"
 					style="background: {on ? 'var(--accent)' : 'transparent'}; color: {on
 						? 'var(--accent-text)'
 						: 'inherit'}; border-color: var(--border)"
@@ -81,7 +115,7 @@
 	</div>
 
 	<label class="flex flex-col gap-1">
-		<span class="text-sm">Text size: {Math.round(appearance.value.fontScale * 100)}%</span>
+		<span class="text-sm font-medium">Text size: {Math.round(appearance.value.fontScale * 100)}%</span>
 		<input
 			type="range"
 			min="0.85"
@@ -93,7 +127,7 @@
 	</label>
 
 	<div class="flex items-center gap-3">
-		<label class="flex items-center gap-2 text-sm">
+		<label class="flex items-center gap-2 text-sm font-medium">
 			Accent colour
 			<input
 				type="color"
@@ -106,7 +140,7 @@
 		{#if appearance.value.accent}
 			<button
 				type="button"
-				class="rounded-lg border px-3 text-sm"
+				class="rounded-lg border px-3 py-1 text-sm"
 				style="border-color: var(--border)"
 				onclick={() => appearance.set({ accent: null })}>Use theme's</button
 			>

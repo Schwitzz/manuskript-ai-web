@@ -1,14 +1,27 @@
 <script lang="ts">
 	import AppShell from '#lib/components/AppShell.svelte';
-	import AppearanceSettings from '#lib/components/AppearanceSettings.svelte';
 	import InstallPrompt from '#lib/components/InstallPrompt.svelte';
 	import TwoFactor from '#lib/components/TwoFactor.svelte';
 	import { auth } from '#lib/stores/auth.svelte.ts';
 	import { project, type ProjectItem } from '#lib/stores/project.svelte.ts';
 	import {
-		LogOut, Brain, Settings2, Tag, UserPlus, FolderPlus, FolderOpen,
-		Trash2, BookmarkPlus, LayoutTemplate, BookOpen, FileText, Users,
-		GitBranch, Globe, ListTree, Layers, PenLine, Palette
+		LogOut,
+		Brain,
+		Tag,
+		Users as UsersIcon,
+		FolderPlus,
+		FolderOpen,
+		Trash2,
+		BookmarkPlus,
+		LayoutTemplate,
+		BookOpen,
+		FileText,
+		GitBranch,
+		Globe,
+		ListTree,
+		Layers,
+		PenLine,
+		Palette
 	} from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { call, ApiError } from '#lib/api.ts';
@@ -16,7 +29,6 @@
 
 	let projects = $state<ProjectItem[]>([]);
 	let creating = $state(false);
-	let showCreateForm = $state(false);
 	let newProjectName = $state('');
 	let newProjectTitle = $state('');
 	let newSample = $state('');
@@ -29,17 +41,16 @@
 	let savingTemplate = $state(false);
 	let error = $state('');
 
-	// Desktop Moduskript Workspace Navigation Grid
-	const workspaceItems = [
-		{ href: '/settings?tab=general', label: 'Title Properties', desc: 'Book title, author, series & genre', icon: BookOpen },
-		{ href: '/settings?tab=summary', label: 'Snowflake Summary', desc: 'Situation, sentence, paragraph & full synopsis', icon: FileText },
-		{ href: '/characters', label: 'Characters', desc: 'POV, motivation, goals, conflicts & traits', icon: Users },
-		{ href: '/plots', label: 'Plots & Subplots', desc: 'Story arcs, characters & resolution steps', icon: GitBranch },
-		{ href: '/world', label: 'World Builder', desc: 'Places, cultures, rules & world hierarchy', icon: Globe },
-		{ href: '/outline', label: 'Outline', desc: 'Chapters, scenes, notes & tree/table views', icon: ListTree },
-		{ href: '/whiteboard', label: 'Board (Whiteboard)', desc: 'Visual canvas, shapes, notes & connections', icon: Layers },
-		{ href: '/write', label: 'Writing Space', desc: 'Markdown editor with Readable / MD Code mode', icon: PenLine },
-		{ href: '/labels', label: 'Labels & Statuses', desc: 'Scene labels, colors & draft statuses', icon: Tag }
+	const projectWorkspaceButtons = [
+		{ href: '/settings?tab=general', label: 'Title Properties', icon: BookOpen },
+		{ href: '/settings?tab=summary', label: 'Snowflake Summary', icon: FileText },
+		{ href: '/plots', label: 'Plot & Subplots', icon: GitBranch },
+		{ href: '/characters', label: 'Characters', icon: UsersIcon },
+		{ href: '/world', label: 'World Builder', icon: Globe },
+		{ href: '/labels', label: 'Labels & Statuses', icon: Tag },
+		{ href: '/outline', label: 'Outline', icon: ListTree },
+		{ href: '/whiteboard', label: 'Board', icon: Layers },
+		{ href: '/write', label: 'Writing Space', icon: PenLine }
 	];
 
 	onMount(async () => {
@@ -121,7 +132,6 @@
 			newProjectTitle = '';
 			newSample = '';
 			newTemplate = '';
-			showCreateForm = false;
 			await loadProjects();
 		} catch (err: unknown) {
 			error = err instanceof ApiError ? err.message : 'Could not create project';
@@ -149,62 +159,100 @@
 	}
 </script>
 
-<AppShell title="Workspace & Settings">
+<AppShell title="More">
 	<div class="mx-auto flex max-w-3xl flex-col gap-6">
-		<!-- 1. Projects & Templates Card -->
-		<section class="flex flex-col gap-4 rounded-xl border p-4" style="border-color: var(--border); background: var(--surface)">
+		<!-- Category 1: Project -->
+		<section
+			class="flex flex-col gap-4 rounded-xl border p-4"
+			style="border-color: var(--border); background: var(--surface)"
+			aria-label="Project"
+		>
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<FolderOpen size={18} style="color: var(--accent)" />
-					<h2 class="text-sm font-semibold">Projects</h2>
+					<h2 class="text-sm font-semibold uppercase tracking-wide">Project</h2>
 				</div>
-				<button
-					type="button"
-					class="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium"
-					style="background: var(--accent); color: var(--accent-text)"
-					onclick={() => (showCreateForm = !showCreateForm)}
-				>
-					<FolderPlus size={14} /> New Project
-				</button>
+				{#if project.name}
+					<span
+						class="rounded-full px-2.5 py-0.5 text-xs font-medium"
+						style="background: var(--bg); color: var(--accent)"
+					>
+						Active: {project.name}
+					</span>
+				{/if}
 			</div>
 
-			{#if projects.length === 0}
-				<p style="color: var(--muted); font-size: 0.875rem;">No projects yet. Create one below.</p>
-			{:else}
-				<ul class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-					{#each projects as p (p.name)}
-						<li class="flex items-center gap-1.5 rounded-lg border p-1.5" style="border-color: {project.name === p.name ? 'var(--accent)' : 'var(--border)'}; background: var(--bg)">
-							<button
-								class="flex flex-1 items-center gap-2.5 rounded-md px-3 py-1.5 text-left"
-								style="background: {project.name === p.name ? 'var(--accent)' : 'transparent'}; color: {project.name === p.name ? 'var(--accent-text)' : 'var(--text)'}"
-								onclick={() => handleSelect(p)}
+			<!-- Quick buttons for Project sections -->
+			<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+				{#each projectWorkspaceButtons as item (item.href)}
+					<button
+						type="button"
+						class="flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition hover:opacity-90"
+						style="background: var(--bg); border-color: var(--border); color: var(--text)"
+						onclick={() => goto(item.href)}
+					>
+						<item.icon size={16} style="color: var(--accent)" class="shrink-0" />
+						<span class="truncate">{item.label}</span>
+					</button>
+				{/each}
+			</div>
+
+			<!-- Project Switcher List -->
+			<div class="border-t pt-3" style="border-color: var(--border)">
+				<h3 class="mb-2 text-xs font-semibold uppercase" style="color: var(--muted)">
+					Switch Project
+				</h3>
+				{#if projects.length === 0}
+					<p style="color: var(--muted); font-size: 0.875rem;">No projects yet. Create one below.</p>
+				{:else}
+					<ul class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+						{#each projects as p (p.name)}
+							<li
+								class="flex items-center gap-1.5 rounded-lg border p-1.5"
+								style="border-color: {project.name === p.name
+									? 'var(--accent)'
+									: 'var(--border)'}; background: var(--bg)"
 							>
-								<FolderOpen size={16} />
-								<span class="flex-1 truncate text-sm font-medium">{p.title || p.name}</span>
-							</button>
-							<button
-								class="tap rounded p-1.5"
-								style="color: var(--muted)"
-								onclick={() => startSaveTemplate(p)}
-								title="Save as template"
-							>
-								<BookmarkPlus size={15} />
-							</button>
-							<button
-								class="tap rounded p-1.5"
-								style="color: var(--danger)"
-								onclick={() => handleDelete(p.name)}
-								title="Delete project"
-							>
-								<Trash2 size={15} />
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
+								<button
+									class="flex flex-1 items-center gap-2.5 rounded-md px-3 py-1.5 text-left"
+									style="background: {project.name === p.name
+										? 'var(--accent)'
+										: 'transparent'}; color: {project.name === p.name
+										? 'var(--accent-text)'
+										: 'var(--text)'}"
+									onclick={() => handleSelect(p)}
+								>
+									<FolderOpen size={16} />
+									<span class="flex-1 truncate text-sm font-medium">{p.title || p.name}</span>
+								</button>
+								<button
+									class="tap rounded p-1.5"
+									style="color: var(--muted)"
+									onclick={() => startSaveTemplate(p)}
+									title="Save as template"
+								>
+									<BookmarkPlus size={15} />
+								</button>
+								<button
+									class="tap rounded p-1.5"
+									style="color: var(--danger)"
+									onclick={() => handleDelete(p.name)}
+									title="Delete project"
+								>
+									<Trash2 size={15} />
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
 
 			{#if savingFrom}
-				<form onsubmit={handleSaveTemplate} class="flex flex-col gap-3 rounded-lg border p-3" style="border-color: var(--accent); background: var(--bg)">
+				<form
+					onsubmit={handleSaveTemplate}
+					class="flex flex-col gap-3 rounded-lg border p-3"
+					style="border-color: var(--accent); background: var(--bg)"
+				>
 					<h3 class="text-sm font-medium">Save "{savingFrom}" as a template</h3>
 					<label class="flex flex-col gap-1">
 						<span class="text-xs">Template name</span>
@@ -244,12 +292,18 @@
 
 			{#if templates.length > 0}
 				<div class="border-t pt-3" style="border-color: var(--border)">
-					<h3 class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase" style="color: var(--muted)">
+					<h3
+						class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase"
+						style="color: var(--muted)"
+					>
 						<LayoutTemplate size={14} /> Saved Templates
 					</h3>
 					<ul class="flex flex-wrap gap-2">
 						{#each templates as t (t)}
-							<li class="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs" style="background: var(--bg); border-color: var(--border)">
+							<li
+								class="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs"
+								style="background: var(--bg); border-color: var(--border)"
+							>
 								<span class="truncate font-medium">{t}</span>
 								<button
 									class="tap rounded p-0.5"
@@ -265,9 +319,12 @@
 				</div>
 			{/if}
 
-			<!-- Create Project Form (always rendered for quick access & tests) -->
+			<!-- Create Project Form -->
 			<div class="border-t pt-3" style="border-color: var(--border)">
-				<h3 class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase" style="color: var(--muted)">
+				<h3
+					class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase"
+					style="color: var(--muted)"
+				>
 					<FolderPlus size={14} /> Create Project
 				</h3>
 				<form onsubmit={handleCreate} class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -324,7 +381,9 @@
 						</label>
 					{/if}
 					{#if error}
-						<p role="alert" class="sm:col-span-2" style="color: var(--danger); font-size: 0.875rem;">{error}</p>
+						<p role="alert" class="sm:col-span-2" style="color: var(--danger); font-size: 0.875rem;">
+							{error}
+						</p>
 					{/if}
 					<div class="sm:col-span-2">
 						<button
@@ -339,83 +398,84 @@
 			</div>
 		</section>
 
-		<!-- 2. Story & Book Workspace Navigation (Desktop Parity Grid) -->
-		<section class="flex flex-col gap-3 rounded-xl border p-4" style="border-color: var(--border); background: var(--surface)">
-			<div class="flex items-center justify-between">
-				<h2 class="text-sm font-semibold">Story & Manuscript Workspace</h2>
-				{#if project.name}
-					<span class="rounded-full px-2.5 py-0.5 text-xs font-medium" style="background: var(--bg); color: var(--accent)">
-						Active: {project.name}
-					</span>
-				{/if}
-			</div>
-			<div class="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-				{#each workspaceItems as item (item.href)}
-					<button
-						type="button"
-						class="flex items-start gap-3 rounded-lg border p-3 text-left transition hover:opacity-90"
-						style="background: var(--bg); border-color: var(--border)"
-						onclick={() => goto(item.href)}
-					>
-						<div class="mt-0.5 rounded-md p-1.5" style="background: var(--surface); color: var(--accent)">
-							<item.icon size={18} />
+		<!-- Categories 2, 3, 4: Appearance, Assistant, Users (#19, #21, #22) -->
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+			<!-- Category 2: Appearance -->
+			<section
+				class="flex flex-col gap-3 rounded-xl border p-4"
+				style="border-color: var(--border); background: var(--surface)"
+				aria-label="Appearance Category"
+			>
+				<div class="flex items-center gap-2">
+					<Palette size={18} style="color: var(--accent)" />
+					<h2 class="text-sm font-semibold uppercase tracking-wide">Appearance</h2>
+				</div>
+				<button
+					type="button"
+					class="flex items-center gap-3 rounded-lg border px-4 py-3 text-left font-medium transition hover:opacity-90"
+					style="background: var(--bg); border-color: var(--border)"
+					onclick={() => goto('/themes')}
+				>
+					<Palette size={20} style="color: var(--accent)" />
+					<div>
+						<div class="text-sm font-semibold">Themes</div>
+						<div class="text-xs" style="color: var(--muted)">
+							32 schemes, spellcheck, inspector & word count
 						</div>
-						<div class="min-w-0 flex-1">
-							<div class="text-sm font-semibold">{item.label}</div>
-							<div class="text-xs leading-snug" style="color: var(--muted)">{item.desc}</div>
-						</div>
-					</button>
-				{/each}
-			</div>
-		</section>
+					</div>
+				</button>
+			</section>
 
-		<!-- 3. AI Assistant, Users & App Configuration -->
-		<section class="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-			<button
-				class="flex items-center gap-3 rounded-xl border px-4 py-3 text-left font-medium"
-				style="background: var(--surface); border-color: var(--border)"
-				onclick={() => goto('/more/ai')}
+			<!-- Category 3: Assistant -->
+			<section
+				class="flex flex-col gap-3 rounded-xl border p-4"
+				style="border-color: var(--border); background: var(--surface)"
+				aria-label="Assistant Category"
 			>
-				<Brain size={20} style="color: var(--accent)" />
-				<div>
-					<div class="text-sm font-semibold">AI Settings</div>
-					<div class="text-xs" style="color: var(--muted)">Providers, models & prompts</div>
+				<div class="flex items-center gap-2">
+					<Brain size={18} style="color: var(--accent)" />
+					<h2 class="text-sm font-semibold uppercase tracking-wide">Assistant</h2>
 				</div>
-			</button>
-			<button
-				class="flex items-center gap-3 rounded-xl border px-4 py-3 text-left font-medium"
-				style="background: var(--surface); border-color: var(--border)"
-				onclick={() => goto('/settings')}
-			>
-				<Settings2 size={20} style="color: var(--accent)" />
-				<div>
-					<div class="text-sm font-semibold">App Settings</div>
-					<div class="text-xs" style="color: var(--muted)">Title info, summary & themes</div>
-				</div>
-			</button>
-			<button
-				class="flex items-center gap-3 rounded-xl border px-4 py-3 text-left font-medium"
-				style="background: var(--surface); border-color: var(--border)"
-				onclick={() => goto('/register')}
-			>
-				<UserPlus size={20} style="color: var(--accent)" />
-				<div>
-					<div class="text-sm font-semibold">Create user</div>
-					<div class="text-xs" style="color: var(--muted)">Manage accounts</div>
-				</div>
-			</button>
-		</section>
+				<button
+					type="button"
+					class="flex items-center gap-3 rounded-lg border px-4 py-3 text-left font-medium transition hover:opacity-90"
+					style="background: var(--bg); border-color: var(--border)"
+					onclick={() => goto('/more/ai')}
+				>
+					<Brain size={20} style="color: var(--accent)" />
+					<div>
+						<div class="text-sm font-semibold">AI Settings</div>
+						<div class="text-xs" style="color: var(--muted)">Providers, default models & prompts</div>
+					</div>
+				</button>
+			</section>
 
-		<!-- 4. Appearance & Theme Switcher -->
-		<section class="flex flex-col gap-3 rounded-xl border p-4" style="border-color: var(--border); background: var(--surface)">
-			<div class="flex items-center gap-2">
-				<Palette size={18} style="color: var(--accent)" />
-				<h2 class="text-sm font-semibold">Appearance & 32 Colour Schemes</h2>
-			</div>
-			<AppearanceSettings />
-		</section>
+			<!-- Category 4: Users -->
+			<section
+				class="flex flex-col gap-3 rounded-xl border p-4"
+				style="border-color: var(--border); background: var(--surface)"
+				aria-label="Users Category"
+			>
+				<div class="flex items-center gap-2">
+					<UsersIcon size={18} style="color: var(--accent)" />
+					<h2 class="text-sm font-semibold uppercase tracking-wide">Users</h2>
+				</div>
+				<button
+					type="button"
+					class="flex items-center gap-3 rounded-lg border px-4 py-3 text-left font-medium transition hover:opacity-90"
+					style="background: var(--bg); border-color: var(--border)"
+					onclick={() => goto('/register')}
+				>
+					<UsersIcon size={20} style="color: var(--accent)" />
+					<div>
+						<div class="text-sm font-semibold">Users</div>
+						<div class="text-xs" style="color: var(--muted)">Add, remove & modify passwords</div>
+					</div>
+				</button>
+			</section>
+		</div>
 
-		<!-- 5. Two-Factor Auth & Session -->
+		<!-- Two-Factor Auth & Session -->
 		<TwoFactor />
 		<InstallPrompt />
 		<button

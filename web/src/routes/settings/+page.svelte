@@ -1,20 +1,16 @@
 <script lang="ts">
 	import AppShell from '#lib/components/AppShell.svelte';
 	import NoProject from '#lib/components/NoProject.svelte';
+	import ProjectNav from '#lib/components/ProjectNav.svelte';
 	import { project } from '#lib/stores/project.svelte.ts';
-	import AppearanceSettings from '#lib/components/AppearanceSettings.svelte';
-	import { Palette, BookOpen, FileText, Check } from '@lucide/svelte';
+	import { BookOpen, FileText, Check } from '@lucide/svelte';
 	import { call } from '#lib/api';
 	import { page } from '$app/state';
 
 	const PROJECT_NAME = $derived(project.name ?? '');
 
-	let activeTab = $state<'general' | 'summary' | 'appearance'>(
-		page.url.searchParams.get('tab') === 'summary'
-			? 'summary'
-			: page.url.searchParams.get('tab') === 'appearance'
-				? 'appearance'
-				: 'general'
+	let activeTab = $state<'general' | 'summary'>(
+		page.url.searchParams.get('tab') === 'summary' ? 'summary' : 'general'
 	);
 	let saving = $state(false);
 	let saved = $state(true);
@@ -173,7 +169,7 @@
 
 	$effect(() => {
 		const urlTab = page.url.searchParams.get('tab');
-		if (urlTab === 'summary' || urlTab === 'general' || urlTab === 'appearance') {
+		if (urlTab === 'summary' || urlTab === 'general') {
 			activeTab = urlTab;
 		}
 	});
@@ -188,50 +184,11 @@
 </script>
 
 <AppShell title="Title Properties & Summary">
-	<div class="mx-auto flex max-w-2xl flex-col gap-6">
-		<!-- Tabs matching Desktop Manuskript: General (Title Properties), Summary (Snowflake), Appearance -->
-		<div class="flex gap-1 rounded-lg border p-1" style="border-color: var(--border); background: var(--surface)" role="tablist">
-			<button
-				class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium"
-				style="background: {activeTab === 'general' ? 'var(--accent)' : 'transparent'}; color: {activeTab === 'general' ? 'var(--accent-text)' : 'var(--text)'}"
-				onclick={() => (activeTab = 'general')}
-				role="tab"
-				aria-selected={activeTab === 'general'}
-			>
-				<BookOpen size={15} class="mr-1 inline" />
-				Title Properties
-			</button>
-			<button
-				class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium"
-				style="background: {activeTab === 'summary' ? 'var(--accent)' : 'transparent'}; color: {activeTab === 'summary' ? 'var(--accent-text)' : 'var(--text)'}"
-				onclick={() => (activeTab = 'summary')}
-				role="tab"
-				aria-selected={activeTab === 'summary'}
-			>
-				<FileText size={15} class="mr-1 inline" />
-				Summary
-			</button>
-			<button
-				class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium"
-				style="background: {activeTab === 'appearance' ? 'var(--accent)' : 'transparent'}; color: {activeTab === 'appearance' ? 'var(--accent-text)' : 'var(--text)'}"
-				onclick={() => (activeTab = 'appearance')}
-				role="tab"
-				aria-selected={activeTab === 'appearance'}
-			>
-				<Palette size={15} class="mr-1 inline" />
-				Appearance
-			</button>
-		</div>
+	<div class="mx-auto flex max-w-4xl flex-col gap-6">
+		<!-- Unified Project Navigation Bar (#20) -->
+		<ProjectNav active={activeTab} onSelectSettingsTab={(t) => (activeTab = t)} />
 
-		{#if activeTab === 'appearance'}
-			<section class="flex flex-col gap-4 rounded-lg border p-4" style="border-color: var(--border); background: var(--surface)">
-				<div class="flex items-center gap-2">
-					<Palette size={20} style="color: var(--accent)" />
-					<h2 class="text-lg font-semibold">Appearance & 32 Colour Schemes</h2>
-				</div>
-				<AppearanceSettings />
-			</section>
-		{:else if !PROJECT_NAME}
+		{#if !PROJECT_NAME}
 			<NoProject />
 		{:else if loading}
 			<p class="py-8 text-center" style="color: var(--muted)">Loading project properties...</p>
